@@ -1,0 +1,999 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/4.0.0/github-markdown.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release/build/styles/default.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex/dist/katex.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/markdown-it-texmath/css/texmath.min.css">
+<link rel="stylesheet" href="file:///c:\Users\marsh\.vscode\extensions\goessner.mdmath-2.7.4\themes\default\style.css">
+
+</head>
+<body class="markdown-body">
+<h1 id="bayesian-adaptive-choice-experiment-bace">Bayesian Adaptive Choice Experiment (BACE)</h1>
+<p>This document details how to set up your own application to run a Bayesian Adaptive Choice Experiment (BACE). You will create a REST API with a backend PostgreSQL database that you can access from other web applications or survey software. To set up the application, you will need basic familiarity in working from the command line and a basic knowledge of SQL and JavaScript.</p>
+<p>As the user, you will specify a set of <code>designs</code> or questions that can be asked to each user. A <code>design</code> is an array that represents a question you can ask a user. You will also specify a range of preference parameter values in <code>thetas</code>. These represent possible preferences that you think an individual might have, and the goal is to find out which of these rows are the most likely. You will then define a likelihood function that calculates the probability of choosing each option for a given <code>design</code> * <code>theta</code> pair. Given these modeling components, you will set up an application that you can query to run an adaptive experiment. The database will perform all computation, and you can access results via your own application or an external survey website by making web queries to this application.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#create-and-deploy-application">Create and Deploy Application</a>
+<ul>
+<li><a href="#set-up-git-and-heroku-cli">Set Up Git and Heroku CLI</a></li>
+<li><a href="#clone-bace-repository">Clone BACE Repository</a></li>
+<li><a href="#update-default-values">Update Default Values</a></li>
+<li><a href="#create-application-on-heroku">Create Application on Heroku</a></li>
+<li><a href="#changing-your-application">Changing Your Application</a></li>
+</ul>
+</li>
+<li><a href="#database-set-up">Database Set Up</a>
+<ul>
+<li><a href="#description-of-database-structure">Description of Database Structure</a></li>
+<li><a href="#customize-your-database">Customize Your Database</a>
+<ul>
+<li><a href="#specify-preference-parameters">Specify Preference Parameters</a></li>
+<li><a href="#specify-question-design-parameters">Specify Question Design Parameters</a></li>
+<li><a href="#specify-likelihood-function">Specify Likelihood Function</a></li>
+</ul>
+</li>
+<li><a href="#deploy-database-on-heroku-postgres">Deploy Database on Heroku Postgres</a>
+<ul>
+<li><a href="#provision-new-database">Provision New Database</a></li>
+<li><a href="#interactive-mode-with-pgpsql">Interactive Mode with pg:psql</a></li>
+</ul>
+</li>
+<li><a href="#populate-database-with-user-specifications">Populate Database with User Specifications</a>
+<ul>
+<li><a href="#example-queries">Example Queries</a></li>
+</ul>
+</li>
+<li><a href="#making-changes-to-your-database-or-heroku-postgres-plan">Making Changes to your Database or Heroku Postgres Plan</a>
+<ul>
+<li><a href="#deleting-the-database">Deleting the Database</a></li>
+<li><a href="#upgrading-to-a-higher-heroku-postgres-tier">Upgrading to a Higher Heroku Postgres Tier</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a href="#how-to-query-the-api">How to Query the API</a>
+<ul>
+<li><a href="#set-up-default-values-for-requests-(optional)">Set Up Default Values for Requests (Optional)</a></li>
+<li><a href="#create-profile">Create Profile</a></li>
+<li><a href="#choose-first-design">Choose First Design</a></li>
+<li><a href="#update-posterior-and-choose-design">Update Posterior and Choose Design</a></li>
+<li><a href="#update-posterior-and-return-posterior-estimates">Update Posterior and Return Posterior Estimates</a></li>
+<li><a href="#implementation-notes">Implementation Notes</a></li>
+</ul>
+</li>
+<li><a href="#example-processing-response-and-implementing-experiment-in-qualtrics">Example: Processing Responses and Implementing Experiment in Qualtrics</a>
+<ul>
+<li><a href="#processing-data-within-your-application">Processing Data Within Your Application</a>
+<ul>
+<li><a href="#define-question-characteristics">Define Question Characteristics</a></li>
+<li><a href="#define-process-for-converting-question-information">Define Process for Converting Question Information</a></li>
+<li><a href="#example-mapping">Example Mapping</a></li>
+</ul>
+</li>
+<li><a href="#setting-up-a-qualtrics-survey">Setting Up a Qualtrics Survey</a>
+<ul>
+<li><a href="#collect-information-from-users">Collect Information From Users</a></li>
+<li><a href="#create-profile-using-web-service">Create Profile Using Web Service</a></li>
+<li><a href="#choose-and-display-first-design">Choose and Display First Design</a></li>
+<li><a href="#update-posterior-and-choose-new-design">Update Posterior and Choose New Design</a></li>
+<li><a href="#access-posterior-estimates">Access Posterior Estimates</a></li>
+<li><a href="#common-mistakes">Common Mistakes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="create-and-deploy-application">Create and Deploy Application</h2>
+<h3 id="set-up-git-and-heroku-cli">Set Up Git and Heroku CLI</h3>
+<p>In this section, we describe how to clone this repository, create your Node.js application, and deploy the application on Heroku. Before we begin, you will need to install Git and the Heroku CLI on your personal computer. You'll also need to make a Heroku account.</p>
+<ul>
+<li><a href="https://git-scm.com/book/en/v2/Getting-Started-Installing-Git">Install Git on Your Device</a></li>
+<li><a href="https://devcenter.heroku.com/articles/heroku-cli#download-and-install">Set up Heroku CLI on Your Device</a></li>
+</ul>
+<p>After installing these programs, you can clone the repository to work locally and deploy your application so that it is hosted on an external Heroku server. Note, this tutorial uses Heroku because it offers a free tier that is useful for development, and the process for setting up your application and attaching a PostgreSQL database is user-friendly. If you are familiar with hosting web applications using other means (e.g. AWS, Azure, Digital Ocean, etc.), you can host your application there and use another service to host your PostgreSQL database.</p>
+<h3 id="clone-bace-repository">Clone BACE Repository</h3>
+<p>Open your system command prompt and navigate to the folder that you want to use.</p>
+<p>for Linux:</p>
+<pre><code class="code-line language-cmd"><div>$ <span class="hljs-built_in">cd</span> /home/user/my_project
+</div></code></pre>
+<p>for macOS:</p>
+<pre><code class="code-line language-cmd"><div>$ <span class="hljs-built_in">cd</span> /Users/user/my_project
+</div></code></pre>
+<p>for Windows:</p>
+<pre><code class="code-line language-cmd"><div>$ <span class="hljs-built_in">cd</span> C:/Users/user/my_project
+</div></code></pre>
+<p>You can clone a repository from the command line using <code>git clone &lt;url&gt;</code>.</p>
+<pre><code class="code-line language-cmd"><div>$ git clone https://github.com/mhdrake/bace_backend.git
+</div></code></pre>
+<p>This creates a copy of our repository on your local computer.</p>
+<h3 id="update-default-values">Update Default Values</h3>
+<p>Go to the file <code>./user_modules/user_defaults.js</code>. This file specifies default values for how you want your application to run. For now, update <code>author_name</code> with your name. The other variables in this file specify default values for how the algorithm should run. These can be changed now or at another time. Make sure to save the file after you have made any changes to this document.</p>
+<pre><code class="code-line language-js"><div><span class="hljs-comment">// Input your name here</span>
+<span class="hljs-keyword">const</span> author_name = <span class="hljs-string">&#x27;Your Name Here&#x27;</span>;
+</div></code></pre>
+<h3 id="create-application-on-heroku">Create Application on Heroku</h3>
+<p>Detailed instructions for how to create a Heroku application can be found <a href="https://devcenter.heroku.com/articles/git">here</a>.</p>
+<p>First, create an app using the <code>heroku create</code> CLI command.</p>
+<pre><code class="code-line language-cmd"><div>$ heroku create
+</div></code></pre>
+<p>This creates a new, empty application on Heroku. You can find the Web URL and other application specific information by running <code>heroku apps:info</code>. This is the URL that you will use to access your API. Next, add changes you have made to your application and push these changes to be hosted on Heroku.</p>
+<pre><code class="code-line language-command"><code><div>$ git add .
+$ git commit -m 'Deploy BACE'
+$ git push heroku main
+</div></code></code></pre>
+<p>When this runs successfully, your application code will be pushed to a remote repository hosted on Heroku, and your application will be running. You can confirm that your application is running by opening up a web browser and pasting your applications URL, <code>https://&lt;your-apps&gt;.herokuapp.com/</code>, into the address bar. In your browser window, you should see:</p>
+<blockquote>
+<p><b>Bayesian Adaptive Choice Experiment (BACE)</b>
+<br>
+Author: &lt;your-name&gt;
+<br>
+Your application is up and running. For more information, check out our <a href="https://github.com/mhdrake/bace_backend">GitHub repository</a>.</p>
+</blockquote>
+<p>If you see this message, great news! Your application is now up and running and you can start updating the code to meet your specific needs.</p>
+<h3 id="changing-your-application">Changing Your Application</h3>
+<p>Changes to code within your repo will <strong>not</strong> be implemented on your application until you push these changes to Heroku. You can do this from the command line using Git. After you've made changes and saved them, push the changes using:</p>
+<pre><code class="code-line language-command"><code><div>$ git add .
+$ git commit -m 'Description of changes'
+$ git push heroku main
+</div></code></code></pre>
+<p>In the next section, we will create a database and connect your application to this database.</p>
+<h2 id="database-set-up">Database Set Up</h2>
+<p>In this section, we describe how to configure your database to your personal experiment and deploy your database on Heroku Postgres. Note, there is no requirement to host your database using Heroku Postgres; you can use any hosting service that you feel comfortable with.</p>
+<p>The key files that will be used to deploy your data base are located in <code>./database_scripts/</code>.</p>
+<ul>
+<li><code>./database_scripts/db_create_tables.sql</code>: This file specifies table schemas for your database and creates functions that will be used to fill these tables.</li>
+<li><code>./database_scripts/db_functions.sql</code>: This file specifies SQL queries that are used by the algorithm to choose future question designs. You do not need to make changes to this file unless you want to add additional features or functions that can be used in your database.</li>
+<li><code>./database_scripts/db_user.sql</code>: This file is used to populate the database based on your experimental design. You will update this file to specify preference parameters, design (question) structures, and a likelihood function that relate to your problem.</li>
+</ul>
+<p>In this section, you will update <code>./database_scripts/db_user.sql</code> to describe the parameters specific to your choice experiment. Create and deploy a Postgres database that is populated with the data necessary for you experiment. Learn how to interact with your database from the terminal and upgrade/delete your database.</p>
+<h3 id="description-of-database-structure">Description of Database Structure</h3>
+<p>There are four main tables that store required information: <code>designs</code>, <code>thetas</code>, <code>full_likelihood</code>, and <code>profiles</code>.</p>
+<ul>
+<li><code>designs</code>: Table of question design specifications. Each discrete choice scenario is characterized by an index and an array of design attributes.
+<ul>
+<li><code>index_d</code>: Primary key specifying unique design</li>
+<li><code>design</code>: Array of parameter values describing a particular design.</li>
+</ul>
+</li>
+<li><code>thetas</code>: Table of possible preference parameter values.
+<ul>
+<li><code>index_t</code>: Primary key specifying unique theta</li>
+<li><code>theta</code>: Array of preference parameter values.</li>
+</ul>
+</li>
+<li><code>full_likelihood</code>: Table of precomputed likelihood values
+<ul>
+<li><code>index_d</code>: Primary key specifying likelihood vector under question index_d</li>
+<li><code>likelihood</code>: Array of length |<code>thetas</code>| specifying the likelihood of choosing the treated option.
+<ul>
+<li><eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>l</mi><mi>i</mi><mi>k</mi><mi>e</mi><mi>l</mi><mi>i</mi><mi>h</mi><mi>o</mi><mi>o</mi><mi>d</mi><mo stretchy="false">[</mo><mi>i</mi><mo stretchy="false">]</mo><mo>=</mo><mi>P</mi><mi>r</mi><mo stretchy="false">(</mo><mi>t</mi><mi>r</mi><mi>e</mi><mi>a</mi><mi>t</mi><mi mathvariant="normal">∣</mi><mi>d</mi><mi>e</mi><mi>s</mi><mi>i</mi><mi>g</mi><msub><mi>n</mi><mrow><mi>i</mi><mi>n</mi><mi>d</mi><mi>e</mi><msub><mi>x</mi><mi>d</mi></msub></mrow></msub><mo separator="true">,</mo><mi>t</mi><mi>h</mi><mi>e</mi><mi>t</mi><msub><mi>a</mi><mrow><mi>i</mi><mi>n</mi><mi>d</mi><mi>e</mi><msub><mi>x</mi><mi>i</mi></msub></mrow></msub><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">likelihood[i] = Pr(treat | design_{index_d}, theta_{index_i})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal" style="margin-right:0.03148em;">ik</span><span class="mord mathnormal">e</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord mathnormal">ih</span><span class="mord mathnormal">oo</span><span class="mord mathnormal">d</span><span class="mopen">[</span><span class="mord mathnormal">i</span><span class="mclose">]</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1.00586em;vertical-align:-0.25586em;"></span><span class="mord mathnormal" style="margin-right:0.13889em;">P</span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mord mathnormal">t</span><span class="mord">∣</span><span class="mord mathnormal">d</span><span class="mord mathnormal">es</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="mord"><span class="mord mathnormal">n</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999985em;"><span style="top:-2.55em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">in</span><span class="mord mathnormal mtight">d</span><span class="mord mathnormal mtight">e</span><span class="mord mtight"><span class="mord mathnormal mtight">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3448em;"><span style="top:-2.3487714285714287em;margin-left:0em;margin-right:0.07142857142857144em;"><span class="pstrut" style="height:2.5em;"></span><span class="sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">d</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15122857142857138em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.25586em;"><span></span></span></span></span></span></span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">h</span><span class="mord mathnormal">e</span><span class="mord mathnormal">t</span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mathnormal mtight">in</span><span class="mord mathnormal mtight">d</span><span class="mord mathnormal mtight">e</span><span class="mord mtight"><span class="mord mathnormal mtight">x</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.3280857142857143em;"><span style="top:-2.357em;margin-left:0em;margin-right:0.07142857142857144em;"><span class="pstrut" style="height:2.5em;"></span><span class="sizing reset-size3 size1 mtight"><span class="mord mathnormal mtight">i</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.143em;"><span></span></span></span></span></span></span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.2501em;"><span></span></span></span></span></span></span><span class="mclose">)</span></span></span></span></eq></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><code>profiles</code>: Individual-specific information about posteriors and prior question designs.
+<ul>
+<li><code>profile_id</code>: Primary key specifying unique profile.</li>
+<li><code>survey_id</code>: String ID used when generating the profile. E.g. a user's MTurk ID or Prolific ID.</li>
+<li><code>design_history</code>: Array of previous designs that have been shown to <code>profile_id</code>.</li>
+<li><code>keep_indices</code>: Array specifying the subset of thetas that are under consideration.</li>
+<li><code>posterior</code>: Array where posterior<sub>j</sub> is the current probability that theta<sub>j</sub> is true conditional on the design and answer history.</li>
+<li><code>sample_percentage_theta</code>: <code>sample_percentage_theta</code>% of rows from <code>thetas</code> that were sampled when creating a new profile.
+<ul>
+<li>Value between 100 (Default: all rows) and 0 (no rows)</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>The schemas for these tables along with functions that will be used to insert values into these tables are defined in <code>./database_scripts/db_create_tables.sql</code>.</p>
+<p>Next, you will specify what values to fill these tables with for your specific application. Open up the file <code>./database_scripts/db_user.sql</code>.</p>
+<h4 id="example-scenario">Example Scenario</h4>
+<p>Suppose each design <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mo>∈</mo><mi>d</mi><mi>e</mi><mi>s</mi><mi>i</mi><mi>g</mi><mi>n</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">d \in designs</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.73354em;vertical-align:-0.0391em;"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.8888799999999999em;vertical-align:-0.19444em;"></span><span class="mord mathnormal">d</span><span class="mord mathnormal">es</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="mord mathnormal">n</span><span class="mord mathnormal">s</span></span></span></span></eq> represents a vector of question design parameters, and suppose each theta <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi><mi>i</mi><mi>n</mi><mi>t</mi><mi>h</mi><mi>e</mi><mi>t</mi><mi>a</mi><mi>s</mi></mrow><annotation encoding="application/x-tex">\theta in thetas</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="mord mathnormal">in</span><span class="mord mathnormal">t</span><span class="mord mathnormal">h</span><span class="mord mathnormal">e</span><span class="mord mathnormal">t</span><span class="mord mathnormal">a</span><span class="mord mathnormal">s</span></span></span></span></eq> represents a vector of preference parameters. We will show the user two different options that differ along a variety of characteristics described by <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi></mrow><annotation encoding="application/x-tex">d</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathnormal">d</span></span></span></span></eq> so that the utility difference between the two options is:</p>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi mathvariant="normal">Δ</mi><mi>u</mi><mo>=</mo><mi>u</mi><mo stretchy="false">(</mo><mi>t</mi><mi>r</mi><mi>e</mi><mi>a</mi><mi>t</mi><mo stretchy="false">)</mo><mo>−</mo><mi>u</mi><mo stretchy="false">(</mo><mi>b</mi><mi>a</mi><mi>s</mi><mi>e</mi><mo stretchy="false">)</mo><mo>=</mo><msup><mi>d</mi><mo mathvariant="normal" lspace="0em" rspace="0em">′</mo></msup><mi>θ</mi></mrow><annotation encoding="application/x-tex">\Delta u = u(treat) - u(base) = d&#x27; \theta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord">Δ</span><span class="mord mathnormal">u</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">u</span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mord mathnormal">t</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">u</span><span class="mopen">(</span><span class="mord mathnormal">ba</span><span class="mord mathnormal">se</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.801892em;vertical-align:0em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t"><span class="vlist-r"><span class="vlist" style="height:0.801892em;"><span style="top:-3.113em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">′</span></span></span></span></span></span></span></span></span><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span></span></span></span></span></eqn></section></math>
+<p>We can then model the probability of choosing option <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>t</mi><mi>r</mi><mi>e</mi><mi>a</mi><mi>t</mi></mrow><annotation encoding="application/x-tex">treat</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.61508em;vertical-align:0em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mord mathnormal">t</span></span></span></span></eq> as:</p>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>P</mi><mi>r</mi><mo stretchy="false">(</mo><mtext>Choose Treat</mtext><mi mathvariant="normal">∣</mi><mi>d</mi><mo separator="true">,</mo><mi>θ</mi><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mn>1</mn><mo>+</mo><mi>e</mi><mi>x</mi><mi>p</mi><mo stretchy="false">(</mo><mo>−</mo><mn>1</mn><mo>∗</mo><mi mathvariant="normal">Δ</mi><mi>u</mi><mo stretchy="false">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">Pr(\text{Choose Treat} | d, \theta) = \frac{1}{1 + exp(-1 * \Delta u)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.13889em;">P</span><span class="mord mathnormal" style="margin-right:0.02778em;">r</span><span class="mopen">(</span><span class="mord text"><span class="mord">Choose Treat</span></span><span class="mord">∣</span><span class="mord mathnormal">d</span><span class="mpunct">,</span><span class="mspace" style="margin-right:0.16666666666666666em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.25744em;vertical-align:-0.936em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.32144em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord mathnormal">e</span><span class="mord mathnormal">x</span><span class="mord mathnormal">p</span><span class="mopen">(</span><span class="mord">−</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord">Δ</span><span class="mord mathnormal">u</span><span class="mclose">)</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.936em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></eqn></section></math>
+<p>This is a simple example of how you can model a choice problem by specifying a set of <code>designs</code> and <code>thetas</code>. In the following sections, we walk through how to set these values up in your code and use an example where each option can have three characteristics: Price, Quality X, and Quality Y. We then model our preferences to estimate how much someone values Quality X, Quality Y, and both Quality X and Y together.</p>
+<h4 id="specify-preference-parameters">Specify Preference Parameters</h4>
+<p>Specify an array of size <code>nparameters</code> * 3. Each row in this multi-dimensional array is of the form [start, end, increment]. It will generate a sequence of possible parameter values for each parameter. <code>gen_grid_thetas()</code> then cross joins each sequence of parameters and populates the <code>thetas</code> table. An example with four parameters is shown below.</p>
+<pre><code class="code-line language-sql"><div><span class="hljs-keyword">SELECT</span> gen_grid_thetas(theta =&gt; <span class="hljs-built_in">ARRAY</span>[
+    <span class="hljs-comment">-- INSERT ARRAY PARAMETERS HERE TO GENERATE GRID</span>
+    [<span class="hljs-number">-5</span>, <span class="hljs-number">5</span>, <span class="hljs-number">1</span>], <span class="hljs-comment">-- Parameter 1 values will be: [-5, -4, ..., 4, 5]</span>
+    [<span class="hljs-number">-5</span>, <span class="hljs-number">5</span>, <span class="hljs-number">1</span>], <span class="hljs-comment">-- Parameter 2 values will be: [-5, -4, ..., 4, 5]</span>
+    [<span class="hljs-number">-1.5</span>, <span class="hljs-number">1.5</span>, <span class="hljs-number">0.5</span>], <span class="hljs-comment">-- Parameter 3 values will be: [-1.5, -1, -0.5, 0, 0.5, 1, 1.5],</span>
+    [<span class="hljs-number">1</span>, <span class="hljs-number">5</span>, <span class="hljs-number">2</span>] <span class="hljs-comment">-- Parameter 4 values will be: [1, 3, 5]</span>
+]);
+</div></code></pre>
+<p>The first 15 rows of the <code>thetas</code> table would look like:</p>
+<pre><code><code><div> index_t |     theta
+---------+----------------
+       1 | {-5,-5,-1.5,1}
+       2 | {-5,-5,-1.5,3}
+       3 | {-5,-5,-1.5,5}
+       4 | {-5,-5,-1,1}
+       5 | {-5,-5,-1,3}
+       6 | {-5,-5,-1,5}
+       7 | {-5,-5,-0.5,1}
+       8 | {-5,-5,-0.5,3}
+       9 | {-5,-5,-0.5,5}
+      10 | {-5,-5,0,1}
+      11 | {-5,-5,0,3}
+      12 | {-5,-5,0,5}
+      13 | {-5,-5,0.5,1}
+      14 | {-5,-5,0.5,3}
+      15 | {-5,-5,0.5,5}
+</div></code></code></pre>
+<p>To explain how to interpret a row in this table, consider the row with <code>index_t = 5</code>. This parameter represents an individual who values Quality X at -$5 and Quality Y at -5$. Also, having both Quality X and Quality Y together decreases an option's value by an addition $1. The final parameter models how sensitive the individual is to utility differences. Comparing the sets of preferences {-5, -5, -1, 1} and {-5, -5, -1, 5}, an individual with the latter preferences will choose the option with the higher utility more frequently (or can be interpreted as making <em>mistakes</em> less frequently). This final parameter is described more when we introduce the likelihood function below.</p>
+<h4 id="specify-question-design-parameters">Specify Question Design Parameters</h4>
+<p>Next create the <code>designs</code> table. Each row in this table will represent a unique question <code>design</code> -- an array of parameter values that completely describes the variables of interest in a question design.</p>
+<p>First, specify a list of design structures where each element is an array of design parameters.</p>
+<pre><code class="code-line language-sql"><div><span class="hljs-keyword">INSERT</span> <span class="hljs-keyword">INTO</span> design_structures(design_structure)
+<span class="hljs-keyword">VALUES</span>
+    (<span class="hljs-built_in">ARRAY</span>[<span class="hljs-number">1</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span>]),
+    (<span class="hljs-built_in">ARRAY</span>[<span class="hljs-number">1</span>, <span class="hljs-number">-1</span>, <span class="hljs-number">0</span>]),
+    (<span class="hljs-built_in">ARRAY</span>[<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">0</span>]),
+    (<span class="hljs-built_in">ARRAY</span>[<span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>]),
+    (<span class="hljs-built_in">ARRAY</span>[<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>]),
+    (<span class="hljs-built_in">ARRAY</span>[<span class="hljs-number">0</span>, <span class="hljs-number">1</span>, <span class="hljs-number">1</span>]);
+</div></code></pre>
+<p>Next, specify the differences in earnings as a sequence that will be cross joined with every <code>design_structure</code> in <code>design_structures</code>.</p>
+<pre><code class="code-line language-sql"><div><span class="hljs-keyword">SELECT</span> gen_grid_designs(diff_earnings =&gt; <span class="hljs-built_in">ARRAY</span>[<span class="hljs-number">-15</span>, <span class="hljs-number">15</span>, <span class="hljs-number">0.5</span>]); 
+<span class="hljs-comment">-- earnings differences in designs will be [-15, -14.5, -14, ..., 14, 14.5, 15]</span>
+</div></code></pre>
+<p>The first ten rows in designs will look something like this:</p>
+<pre><code><code><div> index_d |     design
+---------+-----------------
+       1 | {-12,1,1,1}
+       2 | {-12,1,-1,0}
+       3 | {-12,1,0,0}
+       4 | {-12,1,0,1}
+       5 | {-12,0,1,0}
+       6 | {-12,0,1,1}
+       7 | {-11.75,1,1,1}
+       8 | {-11.75,1,-1,0}
+       9 | {-11.75,1,0,0}
+      10 | {-11.75,1,0,1}
+
+</div></code></code></pre>
+<p>Here, it is useful to explain how a <code>design</code> is interpreted in our example. Consider the <code>design</code> with <code>index_d</code> = 2 and consider the case where a user chooses between two options: Option A and Option B. In this example, the <code>design</code> tells us how Option B differs from Option A.</p>
+<ul>
+<li><code>design[0] = -12</code>: Option B costs $12 less.</li>
+<li><code>design[1] = 1</code>: Option B has Quality X. Option A does not.</li>
+<li><code>design[2] = -1</code>: Option B does not have Quality Y. Option A does.</li>
+<li><code>design[3] = 0</code>: Options B and A have the same value for the interaction of having Quality X and Y. Neither option has both qualities together.
+<ul>
+<li>Interaction for Option B = Quality X * Quality Y = 1 * 0 = 0</li>
+<li>Interaction for Option A = Quality X * Quality Y = 0 * 1 = 0</li>
+</ul>
+</li>
+</ul>
+<p>We could then represent these two choices as:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Option A</th>
+<th>Option B</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Cost</td>
+<td>$P</td>
+<td>$P-12</td>
+</tr>
+<tr>
+<td>Quality X</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Quality Y</td>
+<td>1</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>Your code or survey software will transform the numerical <code>design</code> vector into a question form that can be asked to respondents. Examples for how to do this within the application are provided in <a href="#example:-setup-api-to-process-database-output">Example: Setup API to Process Database Output</a>.</p>
+<h4 id="specify-likelihood-function">Specify Likelihood Function</h4>
+<p>Specify a likelihood function that returns the probability of choosing the treated option for each <code>design</code> x <code>theta</code> pair: <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><mtext>Choose treat</mtext><mi mathvariant="normal">∣</mi><mtext>design, theta</mtext><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">P(\text{Choose treat}| \text{design, theta})</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.13889em;">P</span><span class="mopen">(</span><span class="mord text"><span class="mord">Choose treat</span></span><span class="mord">∣</span><span class="mord text"><span class="mord">design, theta</span></span><span class="mclose">)</span></span></span></span></eq>.</p>
+<p>Consider the example defined above. Let <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>d</mi><mo>=</mo><mi>d</mi><mi>e</mi><mi>s</mi><mi>i</mi><mi>g</mi><mi>n</mi></mrow><annotation encoding="application/x-tex">d = design</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathnormal">d</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.8888799999999999em;vertical-align:-0.19444em;"></span><span class="mord mathnormal">d</span><span class="mord mathnormal">es</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.03588em;">g</span><span class="mord mathnormal">n</span></span></span></span></eq> and <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>θ</mi><mo>=</mo><mi>t</mi><mi>h</mi><mi>e</mi><mi>t</mi><mi>a</mi></mrow><annotation encoding="application/x-tex">\theta = theta</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.69444em;vertical-align:0em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">h</span><span class="mord mathnormal">e</span><span class="mord mathnormal">t</span><span class="mord mathnormal">a</span></span></span></span></eq>. For the example described above, suppose that the utility from option <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>o</mi><mo>∈</mo><mtext>{treat, base}</mtext></mrow><annotation encoding="application/x-tex">o \in \text{\{treat, base\}}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.5782em;vertical-align:-0.0391em;"></span><span class="mord mathnormal">o</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">∈</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord text"><span class="mord">{treat, base}</span></span></span></span></span></eq> is given by:</p>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>u</mi><mo stretchy="false">(</mo><mi>o</mi><mo stretchy="false">)</mo><mo>=</mo><msub><mi>P</mi><mi>o</mi></msub><mo>+</mo><mi>t</mi><mi>h</mi><mi>e</mi><mi>t</mi><msub><mi>a</mi><mn>1</mn></msub><mo>∗</mo><mi>X</mi><mo>+</mo><mi>t</mi><mi>h</mi><mi>e</mi><mi>t</mi><msub><mi>a</mi><mn>2</mn></msub><mo>∗</mo><mi>Y</mi><mo>∗</mo><mi>t</mi><mi>h</mi><mi>e</mi><mi>t</mi><msub><mi>a</mi><mn>3</mn></msub><mo>∗</mo><mi>X</mi><mo>∗</mo><mi>Y</mi></mrow><annotation encoding="application/x-tex">u(o) = P_o + theta_1 * X + theta_2 * Y * theta_3 * X * Y</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">u</span><span class="mopen">(</span><span class="mord mathnormal">o</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.83333em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.151392em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">o</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">h</span><span class="mord mathnormal">e</span><span class="mord mathnormal">t</span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.76666em;vertical-align:-0.08333em;"></span><span class="mord mathnormal" style="margin-right:0.07847em;">X</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">h</span><span class="mord mathnormal">e</span><span class="mord mathnormal">t</span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.22222em;">Y</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord mathnormal">t</span><span class="mord mathnormal">h</span><span class="mord mathnormal">e</span><span class="mord mathnormal">t</span><span class="mord"><span class="mord mathnormal">a</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.07847em;">X</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.68333em;vertical-align:0em;"></span><span class="mord mathnormal" style="margin-right:0.22222em;">Y</span></span></span></span></span></eqn></section></math>
+<p>The difference in utility from the treated and base option is then given by:</p>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>u</mi><mi>t</mi><mi>i</mi><mi>l</mi><mi mathvariant="normal">_</mi><mi>d</mi><mi>i</mi><mi>f</mi><mi>f</mi><mo>=</mo><mi>u</mi><mo stretchy="false">(</mo><mi>t</mi><mi>r</mi><mi>e</mi><mi>a</mi><mi>t</mi><mo stretchy="false">)</mo><mo>−</mo><mi>u</mi><mo stretchy="false">(</mo><mi>b</mi><mi>a</mi><mi>s</mi><mi>e</mi><mo stretchy="false">)</mo></mrow><annotation encoding="application/x-tex">util\_diff = u(treat) - u(base)</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.00444em;vertical-align:-0.31em;"></span><span class="mord mathnormal">u</span><span class="mord mathnormal">t</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord" style="margin-right:0.02778em;">_</span><span class="mord mathnormal">d</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.10764em;">ff</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">u</span><span class="mopen">(</span><span class="mord mathnormal">t</span><span class="mord mathnormal">re</span><span class="mord mathnormal">a</span><span class="mord mathnormal">t</span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal">u</span><span class="mopen">(</span><span class="mord mathnormal">ba</span><span class="mord mathnormal">se</span><span class="mclose">)</span></span></span></span></span></eqn></section></math>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>u</mi><mi>t</mi><mi>i</mi><mi>l</mi><mi mathvariant="normal">_</mi><mi>d</mi><mi>i</mi><mi>f</mi><mi>f</mi><mo>=</mo><mo stretchy="false">(</mo><msub><mi>P</mi><mi>t</mi></msub><mo>−</mo><msub><mi>P</mi><mi>b</mi></msub><mo stretchy="false">)</mo><mo>+</mo><msub><mi>θ</mi><mn>1</mn></msub><mo>∗</mo><mo stretchy="false">(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>−</mo><msub><mi>X</mi><mi>b</mi></msub><mo stretchy="false">)</mo><mo>+</mo><msub><mi>θ</mi><mn>2</mn></msub><mo>∗</mo><mo stretchy="false">(</mo><msub><mi>Y</mi><mi>t</mi></msub><mo>−</mo><msub><mi>Y</mi><mi>b</mi></msub><mo stretchy="false">)</mo><mo>+</mo><msub><mi>θ</mi><mn>3</mn></msub><mo>∗</mo><mo stretchy="false">[</mo><mo stretchy="false">(</mo><msub><mi>X</mi><mi>t</mi></msub><mo>∗</mo><msub><mi>Y</mi><mi>t</mi></msub><mo stretchy="false">)</mo><mo>−</mo><mo stretchy="false">(</mo><msub><mi>X</mi><mi>b</mi></msub><mo>∗</mo><msub><mi>Y</mi><mi>b</mi></msub><mo stretchy="false">)</mo><mo stretchy="false">]</mo></mrow><annotation encoding="application/x-tex">util\_diff = (P_t - P_b) + \theta_1 * (X_t - X_b) + \theta_2 * (Y_t - Y_b) + \theta_3 * [(X_t * Y_t) - (X_b * Y_b)]</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.00444em;vertical-align:-0.31em;"></span><span class="mord mathnormal">u</span><span class="mord mathnormal">t</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord" style="margin-right:0.02778em;">_</span><span class="mord mathnormal">d</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.10764em;">ff</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2805559999999999em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.13889em;">P</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:-0.13889em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">b</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.07847em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2805559999999999em;"><span style="top:-2.5500000000000003em;margin-left:-0.07847em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.07847em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:-0.07847em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">b</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.22222em;">Y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2805559999999999em;"><span style="top:-2.5500000000000003em;margin-left:-0.22222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.22222em;">Y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:-0.22222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">b</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">[(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.07847em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2805559999999999em;"><span style="top:-2.5500000000000003em;margin-left:-0.07847em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.22222em;">Y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.2805559999999999em;"><span style="top:-2.5500000000000003em;margin-left:-0.22222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">t</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">−</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mopen">(</span><span class="mord"><span class="mord mathnormal" style="margin-right:0.07847em;">X</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:-0.07847em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">b</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.22222em;">Y</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.33610799999999996em;"><span style="top:-2.5500000000000003em;margin-left:-0.22222em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mathnormal mtight">b</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mclose">)]</span></span></span></span></span></eqn></section></math>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>u</mi><mi>t</mi><mi>i</mi><mi>l</mi><mi mathvariant="normal">_</mi><mi>d</mi><mi>i</mi><mi>f</mi><mi>f</mi><mo>=</mo><msub><mi>d</mi><mn>1</mn></msub><mo>+</mo><msub><mi>θ</mi><mn>1</mn></msub><mo>∗</mo><msub><mi>d</mi><mn>2</mn></msub><mo>+</mo><msub><mi>θ</mi><mn>2</mn></msub><mo>∗</mo><msub><mi>d</mi><mn>3</mn></msub><mo>+</mo><msub><mi>θ</mi><mn>3</mn></msub><mo>∗</mo><msub><mi>d</mi><mn>4</mn></msub></mrow><annotation encoding="application/x-tex">util\_diff = d_1 + \theta_1 * d_2 + \theta_2 * d_3 + \theta_3 * d_4</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.00444em;vertical-align:-0.31em;"></span><span class="mord mathnormal">u</span><span class="mord mathnormal">t</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord" style="margin-right:0.02778em;">_</span><span class="mord mathnormal">d</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.10764em;">ff</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">2</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">3</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span></span><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal">d</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:0em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">4</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></span></eqn></section></math>
+<p>We then model the probability of choosing the treated option using the standard logistic function:</p>
+<section><eqn><span class="katex-display"><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML" display="block"><semantics><mrow><mi>P</mi><mo stretchy="false">(</mo><mtext>Choose treat</mtext><mi mathvariant="normal">∣</mi><mtext>design, theta</mtext><mo stretchy="false">)</mo><mo>=</mo><mfrac><mn>1</mn><mrow><mn>1</mn><mo>+</mo><mi>e</mi><mi>x</mi><mi>p</mi><mo stretchy="false">(</mo><mo>−</mo><mn>1</mn><mo>∗</mo><msub><mi>θ</mi><mn>4</mn></msub><mo>∗</mo><mi>u</mi><mi>t</mi><mi>i</mi><mi>l</mi><mi mathvariant="normal">_</mi><mi>d</mi><mi>i</mi><mi>f</mi><mi>f</mi><mo stretchy="false">)</mo></mrow></mfrac></mrow><annotation encoding="application/x-tex">P(\text{Choose treat}| \text{design, theta}) = \frac{1}{1 + exp(-1 * \theta_4 * util\_diff)}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1em;vertical-align:-0.25em;"></span><span class="mord mathnormal" style="margin-right:0.13889em;">P</span><span class="mopen">(</span><span class="mord text"><span class="mord">Choose treat</span></span><span class="mord">∣</span><span class="mord text"><span class="mord">design, theta</span></span><span class="mclose">)</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">=</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:2.31744em;vertical-align:-0.996em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:1.32144em;"><span style="top:-2.314em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">+</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord mathnormal">e</span><span class="mord mathnormal">x</span><span class="mord mathnormal">p</span><span class="mopen">(</span><span class="mord">−</span><span class="mord">1</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">4</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mbin">∗</span><span class="mspace" style="margin-right:0.2222222222222222em;"></span><span class="mord mathnormal">u</span><span class="mord mathnormal">t</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.01968em;">l</span><span class="mord" style="margin-right:0.02778em;">_</span><span class="mord mathnormal">d</span><span class="mord mathnormal">i</span><span class="mord mathnormal" style="margin-right:0.10764em;">ff</span><span class="mclose">)</span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.677em;"><span class="pstrut" style="height:3em;"></span><span class="mord"><span class="mord">1</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.996em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span></span></eqn></section></math>
+<p>where <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>θ</mi><mn>4</mn></msub></mrow><annotation encoding="application/x-tex">\theta_4</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">4</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span></span></span></span></eq> is a scale parameter that normalizes the observed variance. As <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>θ</mi><mn>4</mn></msub><mo>→</mo><mn>0</mn></mrow><annotation encoding="application/x-tex">\theta_4 \rightarrow 0</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">4</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.64444em;vertical-align:0em;"></span><span class="mord">0</span></span></span></span></eq>, the probability of choosing the option with higher utility approaches 1/2. As <eq><span class="katex"><span class="katex-mathml"><math xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>θ</mi><mn>4</mn></msub><mo>→</mo><mi mathvariant="normal">∞</mi></mrow><annotation encoding="application/x-tex">\theta_4 \rightarrow \infty</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:0.84444em;vertical-align:-0.15em;"></span><span class="mord"><span class="mord mathnormal" style="margin-right:0.02778em;">θ</span><span class="msupsub"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.30110799999999993em;"><span style="top:-2.5500000000000003em;margin-left:-0.02778em;margin-right:0.05em;"><span class="pstrut" style="height:2.7em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight">4</span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.15em;"><span></span></span></span></span></span></span><span class="mspace" style="margin-right:0.2777777777777778em;"></span><span class="mrel">→</span><span class="mspace" style="margin-right:0.2777777777777778em;"></span></span><span class="base"><span class="strut" style="height:0.43056em;vertical-align:0em;"></span><span class="mord">∞</span></span></span></span></eq>, the probability of choosing the option with the higher utility approaches 1.</p>
+<p>Your implementation of the likelihood function depends on the interpretation of the <code>theta</code> and <code>design</code> variables in your application. We implement the likelihood function described above shown in the code below:</p>
+<pre><code class="code-line language-sql"><div><span class="hljs-comment">/*
+    STEP 3: Update Likelihood Function
+    Input
+        design: array of design parameters defined in Step 2
+        theta: array of coefficient parameters defined in Step 1
+    -- Return likelihood of choosing the treated option
+*/</span>
+<span class="hljs-keyword">CREATE</span> <span class="hljs-keyword">OR</span> <span class="hljs-keyword">REPLACE</span> <span class="hljs-keyword">FUNCTION</span> likelihood_func(design <span class="hljs-built_in">float</span>[], theta <span class="hljs-built_in">float</span>[])
+<span class="hljs-keyword">RETURNS</span> <span class="hljs-built_in">float</span>
+<span class="hljs-keyword">AS</span> $$
+<span class="hljs-keyword">DECLARE</span>
+    util_diff <span class="hljs-built_in">float</span>; 
+	likelihood float;
+    utility_function text;
+<span class="hljs-keyword">BEGIN</span>
+    <span class="hljs-comment">-- Note, PostgreSQL arrays are 1-based. E.g. x = ARRAY[10, 4, 7] -&gt; x[1]=10, x[2]=4, ...    </span>
+    <span class="hljs-comment">-- util_diff = u(treat) - u(base)</span>
+    util_diff := design[<span class="hljs-number">1</span>] + design[<span class="hljs-number">2</span>] * theta[<span class="hljs-number">1</span>] + design[<span class="hljs-number">3</span>] * theta[<span class="hljs-number">2</span>] + design[<span class="hljs-number">4</span>] * theta[<span class="hljs-number">3</span>];
+    <span class="hljs-comment">-- Likelihood of choosing the treated option. Use exp_safe here to avoid overflow errors</span>
+    likelihood := 1.0 / (1.0 + exp_safe(-1.0 * theta[4] * util_diff));
+	RETURN likelihood;
+<span class="hljs-keyword">END</span>;
+$$ LANGUAGE plpgsql;
+
+</div></code></pre>
+<p>After completing Steps 1 through 3, make sure to save the changes to your file. Once you have finished specifying parameters for <code>designs</code>, <code>thetas</code>, and the likelihood function <code>likelihood_func</code>, you can proceed forward to populate your database tables with these values. Note, the file <code>./database_scripts/examples/example_wtp_db_user.sql</code> provides an example for how to set up your database for calculating WTP for a single characteristic. That folder may contain additional example scripts over time.</p>
+<h3 id="deploy-database-on-heroku-postgres">Deploy Database on Heroku Postgres</h3>
+<p>This section explains how to provision a database using Heroku Postgres and fill the tables required by the algorithm. For further details, see the <a href="https://devcenter.heroku.com/articles/heroku-postgresql#provisioning-heroku-postgres">Heroku Postgres guide</a> online.</p>
+<h4 id="provision-new-database">Provision New Database</h4>
+<p>The command <code>heroku addons</code> will display possible add-ons provisioned to your existing Heroku application. To create a new database that is attached to your application, use the following command:</p>
+<pre><code><code><div>$ heroku addons:create heroku-postgresql:&lt;PLAN_NAME&gt;
+</div></code></code></pre>
+<p>Possible Heroku Postgres plans can be found online. The <code>hobby-dev</code> tier is free. We recommend using this <code>hobby-dev</code> tier and a sparse parameter space while developing your application. Once you are ready to deploy your survey, you can make the parameter space finer and upgrade to a higher database tier to make sure that your application has the RAM/storage necessary to function at scale.</p>
+<p>It will take a moment to prepare your database. You can monitor the status of the database using the <code>heroku pg:wait</code> command.</p>
+<pre><code class="code-line language-console"><div><span class="hljs-meta">$</span><span class="bash"> heroku pg:<span class="hljs-built_in">wait</span></span>
+</div></code></pre>
+<p>The status will transition from '...preparing' to '...available' when the database is provisioned. Now, you can proceed to creating the contents of your database.</p>
+<p>After provisioning your database, you can make sure that this database is attached to your application by rerunning the command <code>heroku addons</code>. A new <code>heroku-postgresql</code> will be visible along with the chosen plan, monthly pricing, and current state of the database.</p>
+<pre><code><code><div>$ heroku addons
+Add-on                                          Plan         Price      State  
+──────────────────────────────────────────────  ───────────  ─────────  ───────
+heroku-postgresql (postgresql-regular-48521)    hobby-dev    free       created
+ └─ as DATABASE
+</div></code></code></pre>
+<p>Next, export the <code>DATABASE_URL</code> to an environment variable for your app so that your Heroku application can connect to your Postgres database locally.</p>
+<pre><code class="code-line language-console"><div>-- for Mac and Linux
+<span class="hljs-meta">$</span><span class="bash"> <span class="hljs-built_in">export</span> DATABASE_URL=postgres://$(whoami)</span>
+-- for Windows
+<span class="hljs-meta">$</span><span class="bash"> <span class="hljs-built_in">set</span> DATABASE_URL=postgres://$(whoami)</span>
+</div></code></pre>
+<p>You can connect to this database from your local computer using the <a href="https://devcenter.heroku.com/articles/heroku-cli">Heroku CLI</a>. For example, you can use <code>heroku pg:info</code> to check the status of your database or use <code>heroku pg:wait</code> to monitor the status of your database and see when it becomes available.</p>
+<h4 id="interactive-mode-with-pgpsql">Interactive Mode with pg:psql</h4>
+<p>To interact with your remote database and issue commands directly, you can use the command:</p>
+<pre><code class="code-line language-console"><div><span class="hljs-meta"> $</span><span class="bash"> heroku pg:psql</span>
+</div></code></pre>
+<p>This creates an interactive terminal through which you can access your Postgres database. Here, you can now run standard <code>psql</code> commands and interact with your database.</p>
+<p>For example, you can look at the tables available within your database using the command <code>\dt</code>. For now, this will return 'Did not find any relations' because our database is currently empty.</p>
+<h3 id="populate-database-with-user-specifications">Populate Database with User Specifications</h3>
+<p>Currently, your online database is empty, but we can create the database using the file <code>./database_scripts/db_create_tables.sql</code>. You can run any <code>.sql</code> file located on your local computer as a script in your Heroku database using the following command:</p>
+<pre><code class="code-line language-console"><div><span class="hljs-meta">$</span><span class="bash"> heroku pg:psql -f <span class="hljs-string">&#x27;path/to/file/file_name.sql&#x27;</span></span>
+</div></code></pre>
+<p>In particular, we will use this method to create the database using our <code>./database_scripts/db_create_tables.sql</code> script. Depending on the size of your database and your Heroku Postgres tier, the following scripts script can take an hour or more to run. For smaller experiments with a small number of parameters, this process will happen quickly.</p>
+<p><strong>Note, DO NOT exit the command line while these files are running. This will terminate the script and could lead to some of the tables not being created entirely. We describe a few queries to run to make sure your database was generated correctly at the end of the section..</strong></p>
+<p>To create the table schemas, run:</p>
+<pre><code class="code-line language-console"><div><span class="hljs-meta">$</span><span class="bash">  heroku pg:psql -f <span class="hljs-string">&#x27;./database_scripts/db_create_tables.sql&#x27;</span></span>
+<span class="hljs-meta">--&gt;</span><span class="bash"> Connecting to postgresql-database-name</span>
+</div></code></pre>
+<p>To create functions that will be used to insert data into tables and select future designs, run the file:</p>
+<pre><code class="code-line language-console"><div><span class="hljs-meta">$</span><span class="bash"> heroku pg:psql -f <span class="hljs-string">&#x27;./database_scripts/db_functions.sql&#x27;</span></span>
+</div></code></pre>
+<p>Finally, run the code that populates the tables in your database. Note, this can take a while depending on the size of parameters you consider and the tier of your Heroku Postgres plan.</p>
+<pre><code class="code-line language-console"><div><span class="hljs-meta">$</span><span class="bash"> heroku pg:psql -f <span class="hljs-string">&#x27;./database_scripts/db_user.sql&#x27;</span></span>
+</div></code></pre>
+<p>After all three files have been run, your database will be provisioned and connected to your application.</p>
+<h4 id="example-queries">Example Queries</h4>
+<p>In this section, you will learn how to run a few example queries from your database using an interactive terminal. We will also confirm that your database looks like you expect it to. First, open up a connection to your database from the command line:</p>
+<pre><code class="code-line language-command"><code><div>$ heroku pg:psql
+</div></code></code></pre>
+<p>List the tables that have been created in your database using the command <code>\dt</code>. You should see something similar to what is shown below.</p>
+<pre><code><code><div>\dt
+
+                  List of relations
+ Schema |       Name        | Type  |     Owner
+--------+-------------------+-------+----------------
+ public | design_structures | table | xyzxyzxyzxyzxy
+ public | designs           | table | xyzxyzxyzxyzxy
+ public | full_likelihood   | table | xyzxyzxyzxyzxy
+ public | profiles          | table | xyzxyzxyzxyzxy
+ public | thetas            | table | xyzxyzxyzxyzxy
+ 
+</div></code></code></pre>
+<p>Next, run a query to look at the first 5 rows of your <code>thetas</code> table.</p>
+<pre><code class="code-line language-sql"><div>$ <span class="hljs-keyword">SELECT</span> * <span class="hljs-keyword">FROM</span> thetas <span class="hljs-keyword">LIMIT</span> <span class="hljs-number">5</span>;
+ index_t |     theta
+<span class="hljs-comment">---------+----------------</span>
+       1 | {-5,-5,-1.5,1}
+       2 | {-5,-5,-1.5,3}
+       3 | {-5,-5,-1.5,5}
+       4 | {-5,-5,-1,1}
+       5 | {-5,-5,-1,3}
+(5 rows)
+</div></code></pre>
+<p>Run a query to look at the first 5 rows of your <code>designs</code> table and confirm that these look as expected.</p>
+<pre><code class="code-line language-sql"><div><span class="hljs-keyword">SELECT</span> * <span class="hljs-keyword">FROM</span> designs <span class="hljs-keyword">LIMIT</span> <span class="hljs-number">5</span>;
+ index_d |    design
+<span class="hljs-comment">---------+--------------</span>
+       1 | {-12,1,1,1}
+       2 | {-12,1,-1,0}
+       3 | {-12,1,0,0}
+       4 | {-12,1,0,1}
+       5 | {-12,0,1,0}
+</div></code></pre>
+<p>Finally, run the following command which will provide some output to make sure that your tables have been filled:</p>
+<pre><code class="code-line language-sql"><div><span class="hljs-keyword">SELECT</span> exit_message();
+</div></code></pre>
+<pre><code><code><div>NOTICE:  
+        Number of designs: 582
+        Number of full_likelihood designs: 582
+        Number of thetas: 2541
+        Length of likelihood array in full_likelihood: 2541
+        Number of rows in full_likelihood containing null values: 0
+</div></code></code></pre>
+<p>Note, the number of rows in <code>designs</code> should equal the number of rows in <code>full_likelihood</code> since we save a <code>likelihood</code> array for each <code>index_d</code>. Also, the number of rows in <code>thetas</code> should equal the length of the <code>likelihood</code> array in <code>full_likelihood</code> since each element in this array represents the probability of choosing the treated option for a given <code>design</code>x<code>theta</code> pair. The final row tells us whether any <code>likelihood</code> array in the <code>full_likelihood</code> table contains null values; this value should equal 0.</p>
+<p>If any of these are not true, make sure to check that you specified steps 1 through 3 correctly. After saving any changes, follow the steps in <a href="#populate-database-with-user-specifications">Populate Database with User Specifications</a> to run <code>./database_scripts/db_create_tables.sql</code> and <code>./database_scripts/db_user.sql</code> again. Rerun the tests from this section to make sure that your database is now filled correctly.</p>
+<p>When you're finished running sample queries on the database, you can exit the interactive terminal using <code>\q</code>.</p>
+<h3 id="making-changes-to-your-database-or-heroku-postgres-plan">Making Changes to your Database or Heroku Postgres Plan</h3>
+<p>You may want to make changes to your database for a variety of reasons. Perhaps, you want to make the parameter space under consideration finer or increase the range of question designs that you want to choose from. Alternatively, you may want to upgrade to a higher Heroku Postgres tier to increase speed and storage capacity when you move from developing your application to deploying a large-scale survey.</p>
+<p>This section describes how you can make changes to your database. <strong>Be careful not to delete sensitive data when following the steps below.</strong> If you've already collected information from respondents that you need, make sure to save this information accordingly before deleting anything.</p>
+<h4 id="deleting-the-database">Deleting the Database</h4>
+<p>If you have not collected responses yet or do not have any sensitive data in your database, you can delete your database and follow the steps above to recreate a new database using a higher tier. First, delete the database using the command:</p>
+<pre><code class="code-line language-console"><div><span class="hljs-meta">$</span><span class="bash"> heroku addons:destroy heroku-postgresql:&lt;PLAN_NAME&gt;</span>
+</div></code></pre>
+<p>If you forgot the plan name that you are using, you can find this out by running <code>heroku addons</code>.</p>
+<p>After deleting the database, you can make any relevant changes to <code>./database_scripts/db_user.sql</code>, <code>./database_scripts/db_create_tables.sql</code>, or <code>./database_scripts/db_functions.sql</code> and provision a database using a higher tier. For more information on choosing the right tier, look here: <a href="https://devcenter.heroku.com/articles/heroku-postgres-plans">Choosing the Right Heroku Postgres Plan</a>.</p>
+<h4 id="upgrading-to-a-higher-heroku-postgres-tier">Upgrading to a Higher Heroku Postgres Tier</h4>
+<p>If you want to migrate your database to a Heroku Postgres tier with more storage and RAM, follow the steps here: <a href="https://devcenter.heroku.com/articles/updating-heroku-postgres-databases">Changing the Plan or Infrastructure of a Heroku Postgres Database</a></p>
+<h2 id="how-to-query-the-api">How to Query the API</h2>
+<p>This section describes how to perform the key API requests for the BACE procedure. Throughout, we will provide examples of how to make these requests using Python and JavaScript, but you can use any language that can perform https requests to make these queries. This section describes the four main API calls necessary for running a choice experiment using this package.</p>
+<p>Note, to test API calls more conveniently you can use <a href="https://www.postman.com/">Postman</a>, which offers a free tier, or some other API client.</p>
+<h3 id="set-up-default-values-for-requests-optional">Set Up Default Values for Requests (Optional)</h3>
+<p>Before we begin making API requests, you can change default values for how questions are chosen by going to <code>./user_modules/user_defaults.js</code>.</p>
+<ul>
+<li><code>allow_repeated_designs</code>: Determines whether the algorithm can show the same question to respondents twice:
+<ul>
+<li><code>true</code> allows repeated designs</li>
+<li><code>false</code> does not allow repeated designs</li>
+</ul>
+</li>
+<li><code>default_sample_percentage_theta</code>: Determines the percentage of rows from <code>thetas</code> that are randomly selected and assigned as possible parameter values for an individual.
+<ul>
+<li>100 returns the full parameter grid.</li>
+<li>X &lt; 100 samples each row with probability X%</li>
+</ul>
+</li>
+<li><code>default_sample_percentage_designs</code>: Determines the percentage of questions to randomly search over during each round when choosing the optimal design.
+<ul>
+<li>100: Searches the entire grid.</li>
+<li>X &lt; 100: Searches X% of question designs.</li>
+<li>Smaller X values will perform a random search over a subset of <code>designs</code>. The timing to compute the next question is roughly linear in the number of <code>designs</code> considered, so choosing a smaller X value can significantly speed up the time between questions. For example, if X = 50%, then the algorithm considers half of the question designs in the grid and will take about 50% of the time to choose each question.</li>
+</ul>
+</li>
+</ul>
+<pre><code class="code-line language-js"><div><span class="hljs-comment">// Should the algorithm consider designs that have already been shown to a respondent?</span>
+<span class="hljs-keyword">const</span> allow_repeated_designs = <span class="hljs-built_in">Boolean</span>(<span class="hljs-literal">false</span>); <span class="hljs-comment">// true if yes, false if no</span>
+
+<span class="hljs-comment">// Percentage of rows from theta to randomly sample and assign to each profile. Default 100 - All rows.</span>
+<span class="hljs-keyword">const</span> default_sample_percentage_theta = <span class="hljs-number">100</span>;
+
+<span class="hljs-comment">// Percentage of question designs to randomly search over when choosing the optimal design each round. Default 100 - All rows</span>
+<span class="hljs-keyword">const</span> default_sample_percentage_designs = <span class="hljs-number">100</span>;
+</div></code></pre>
+<h3 id="create-profile">Create Profile</h3>
+<p>You need to create an entry in the <code>profiles</code> table for each respondent. This table stores the respondent's posterior estimates, design history, and other profile-specific information. You will make a POST request to <code>https://&lt;your-app&gt;.herokuapp.com/api_raw/create_profile</code>. Include the following parameters in the body of your request:</p>
+<ul>
+<li><code>survey_id</code>: String ID used when generating the profile. E.g. a user's MTurk ID or Prolific ID.</li>
+<li><code>sample_percentage_theta</code> (optional): The percentage of rows from <code>thetas</code> to sample when generating a profile-specific parameter array. This value defaults to 100 (sampling all rows).</li>
+</ul>
+<p>This query generates a profile for the individual with a uniform prior over the parameters selected for that individual and then returns a unique <code>profile_id</code> for the individual. Store this variable for the user so that you can access their profile in future calls.</p>
+<p>Examples for how to create a profile and print the response are shown below for both JavaScript using fetch and Python using the requests library.</p>
+<p>JavaScript</p>
+<pre><code class="code-line language-javascript"><div><span class="hljs-keyword">var</span> myHeaders = <span class="hljs-keyword">new</span> Headers();
+myHeaders.append(<span class="hljs-string">&quot;Content-Type&quot;</span>, <span class="hljs-string">&quot;application/json&quot;</span>);
+
+<span class="hljs-keyword">var</span> raw = <span class="hljs-built_in">JSON</span>.stringify({
+  <span class="hljs-string">&quot;survey_id&quot;</span>: <span class="hljs-string">&quot;users-survey-id&quot;</span>
+});
+
+<span class="hljs-keyword">var</span> requestOptions = {
+  <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;POST&#x27;</span>,
+  <span class="hljs-attr">headers</span>: myHeaders,
+  <span class="hljs-attr">body</span>: raw,
+  <span class="hljs-attr">redirect</span>: <span class="hljs-string">&#x27;follow&#x27;</span>
+};
+
+<span class="hljs-keyword">var</span> url = <span class="hljs-string">&quot;https://&lt;your-app&gt;.herokuapp.com/api_raw/create_profile&quot;</span>;
+
+fetch(url, requestOptions)
+  .then(<span class="hljs-function"><span class="hljs-params">response</span> =&gt;</span> response.json())
+  .then(<span class="hljs-function"><span class="hljs-params">result</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(result))
+  .catch(<span class="hljs-function"><span class="hljs-params">error</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;error&#x27;</span>, error));
+</div></code></pre>
+<p>Python</p>
+<pre><code class="code-line language-python"><div><span class="hljs-keyword">import</span> requests
+<span class="hljs-keyword">import</span> json
+
+url = <span class="hljs-string">&quot;https://&lt;your-app&gt;.herokuapp.com/api_raw/create_profile&quot;</span>
+
+payload = json.dumps({
+  <span class="hljs-string">&quot;survey_id&quot;</span>: <span class="hljs-string">&quot;users-survey-id&quot;</span>,
+})
+headers = {
+  <span class="hljs-string">&#x27;Content-Type&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>
+}
+
+response = requests.request(<span class="hljs-string">&quot;POST&quot;</span>, url, headers=headers, data=payload)
+
+print(response.json())
+</div></code></pre>
+<h3 id="choose-first-design">Choose First Design</h3>
+<p>Now that you have a profile created for that user, you can choose the first design by making a PUT call to <code>https://&lt;your-app&gt;.herokuapp.com/api_raw/choose_first_design</code>. Include the following variables in the body of your request:</p>
+<ul>
+<li><code>profile_id</code>: User-specific profile id that is created from the call to <code>https://&lt;your-app&gt;.herokuapp.com/api_raw/create_profile</code>.</li>
+<li><code>sample_percentage_designs</code> (optional): This specifies the percentage of rows in <code>designs</code> to consider when choosing the optimal question.</li>
+</ul>
+<p>Example queries in JavaScript and Python are shown below.</p>
+<pre><code class="code-line language-js"><div><span class="hljs-keyword">var</span> myHeaders = <span class="hljs-keyword">new</span> Headers();
+myHeaders.append(<span class="hljs-string">&quot;Content-Type&quot;</span>, <span class="hljs-string">&quot;application/json&quot;</span>);
+
+<span class="hljs-keyword">var</span> raw = <span class="hljs-built_in">JSON</span>.stringify({
+  <span class="hljs-string">&quot;profile_id&quot;</span>: <span class="hljs-number">1</span>,
+  <span class="hljs-string">&quot;sample_percentage_designs&quot;</span>: <span class="hljs-number">50</span>
+});
+
+<span class="hljs-keyword">var</span> requestOptions = {
+  <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;PUT&#x27;</span>,
+  <span class="hljs-attr">headers</span>: myHeaders,
+  <span class="hljs-attr">body</span>: raw,
+  <span class="hljs-attr">redirect</span>: <span class="hljs-string">&#x27;follow&#x27;</span>
+};
+
+<span class="hljs-keyword">var</span> url = <span class="hljs-string">&quot;https://&lt;your-app.herokuapp.com/api_raw/choose_first_design&quot;</span>;
+
+fetch(url, requestOptions)
+  .then(<span class="hljs-function"><span class="hljs-params">response</span> =&gt;</span> response.json())
+  .then(<span class="hljs-function"><span class="hljs-params">result</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(result))
+  .catch(<span class="hljs-function"><span class="hljs-params">error</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;error&#x27;</span>, error));
+</div></code></pre>
+<pre><code class="code-line language-python"><div><span class="hljs-keyword">import</span> requests
+<span class="hljs-keyword">import</span> json
+
+url = <span class="hljs-string">&quot;https://&lt;your-app&gt;.herokuapp.com/api_raw/choose_first_design&quot;</span>
+
+payload = json.dumps({
+  <span class="hljs-string">&quot;profile_id&quot;</span>: <span class="hljs-number">1</span>,
+  <span class="hljs-string">&quot;sample_percentage_designs&quot;</span>: <span class="hljs-number">50</span>
+})
+headers = {
+  <span class="hljs-string">&#x27;Content-Type&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>
+}
+
+response = requests.request(<span class="hljs-string">&quot;PUT&quot;</span>, url, headers=headers, data=payload)
+
+print(response.text)
+</div></code></pre>
+<p>Example output:</p>
+<pre><code><code><div>{
+    index_d: 289,
+    design: [0, 1, 1, 1]
+}
+</div></code></code></pre>
+<p>Your application can then process the response and translate a specific question <code>design</code> into the format for your choice experiment.</p>
+<h3 id="update-posterior-and-choose-design">Update Posterior and Choose Design</h3>
+<p>After retrieving an answer to the previous question, you can store the user's answer. Send a new PUT request with the user's <code>profile_id</code> and <code>answer</code> to <code>https://&lt;your-app&gt;.herokuapp.com/api_raw/update_and_choose_design</code>. The database will update the posterior for that user and choose the next optimal <code>design</code>. Include the following variables in the body of your request:</p>
+<ul>
+<li><code>profile_id</code>: User-specific profile id that is created from the call to <code>https://&lt;your-app&gt;.herokuapp.com/api_raw/create_profile</code>.</li>
+<li><code>answer</code>: User's answer to the last question
+<ul>
+<li>1: Chose treated option</li>
+<li>0: Chose base option</li>
+</ul>
+</li>
+<li><code>sample_percentage_designs</code> (optional): This specifies the percentage of rows in <code>designs</code> to consider when choosing the optimal question.</li>
+</ul>
+<p>Suppose the individual chose the treated option to the previous question. Example queries in JavaScript and Python are shown below.</p>
+<pre><code class="code-line language-js"><div><span class="hljs-keyword">var</span> myHeaders = <span class="hljs-keyword">new</span> Headers();
+myHeaders.append(<span class="hljs-string">&quot;Content-Type&quot;</span>, <span class="hljs-string">&quot;application/json&quot;</span>);
+
+<span class="hljs-keyword">var</span> raw = <span class="hljs-built_in">JSON</span>.stringify({
+  <span class="hljs-string">&quot;profile_id&quot;</span>: <span class="hljs-number">1</span>,
+  <span class="hljs-string">&quot;answer&quot;</span>: <span class="hljs-number">1</span>,
+  <span class="hljs-string">&quot;sample_percentage_designs&quot;</span>: <span class="hljs-number">50</span>
+});
+
+<span class="hljs-keyword">var</span> requestOptions = {
+  <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;PUT&#x27;</span>,
+  <span class="hljs-attr">headers</span>: myHeaders,
+  <span class="hljs-attr">body</span>: raw,
+  <span class="hljs-attr">redirect</span>: <span class="hljs-string">&#x27;follow&#x27;</span>
+};
+
+<span class="hljs-keyword">var</span> url = <span class="hljs-string">&quot;https://&lt;your-app.herokuapp.com/api_raw/update_and_choose_design&quot;</span>;
+
+fetch(url, requestOptions)
+  .then(<span class="hljs-function"><span class="hljs-params">response</span> =&gt;</span> response.json())
+  .then(<span class="hljs-function"><span class="hljs-params">result</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(result))
+  .catch(<span class="hljs-function"><span class="hljs-params">error</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;error&#x27;</span>, error));
+</div></code></pre>
+<pre><code class="code-line language-python"><div><span class="hljs-keyword">import</span> requests
+<span class="hljs-keyword">import</span> json
+
+url = <span class="hljs-string">&quot;https://&lt;your-app&gt;.herokuapp.com/api_raw/update_and_choose_design&quot;</span>
+
+payload = json.dumps({
+  <span class="hljs-string">&quot;profile_id&quot;</span>: <span class="hljs-number">1</span>,
+  <span class="hljs-string">&quot;answer&quot;</span>: <span class="hljs-number">1</span>,
+  <span class="hljs-string">&quot;sample_percentage_designs&quot;</span>: <span class="hljs-number">50</span>
+})
+headers = {
+  <span class="hljs-string">&#x27;Content-Type&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>
+}
+
+response = requests.request(<span class="hljs-string">&quot;PUT&quot;</span>, url, headers=headers, data=payload)
+
+print(response.text)
+</div></code></pre>
+<p>You will get back a new question design based on the user's previous response.
+Example output:</p>
+<pre><code><code><div>{
+    index_d: 278,
+    design: [-0.5, 1, -1, 0]
+}
+</div></code></code></pre>
+<p>You can run this call repeatedly to select a new design after each response from the user.</p>
+<h3 id="update-posterior-and-return-posterior-estimates">Update Posterior and Return Posterior Estimates</h3>
+<p>After the final question in your experiment, you can retrieve posterior estimates. Send a new PUT request with the user's <code>profile_id</code> and <code>answer</code> to <code>https://&lt;your-app&gt;.herokuapp.com/api_raw/update_and_return_estimates</code>. The database will update the posterior for that user and return posterior estimates on <code>theta</code>. Include the following variables in the body of your request:</p>
+<ul>
+<li><code>profile_id</code>: User-specific profile id that is created from the call to <code>https://&lt;your-app&gt;.herokuapp.com/api_raw/create_profile</code>.</li>
+<li><code>answer</code>: User's answer to the previous question
+<ul>
+<li>1: Chose treated option</li>
+<li>0: Chose base option</li>
+</ul>
+</li>
+</ul>
+<p>Suppose the individual chose the base option to the previous question. Example queries in JavaScript and Python are shown below.</p>
+<pre><code class="code-line language-js"><div><span class="hljs-keyword">var</span> myHeaders = <span class="hljs-keyword">new</span> Headers();
+myHeaders.append(<span class="hljs-string">&quot;Content-Type&quot;</span>, <span class="hljs-string">&quot;application/json&quot;</span>);
+
+<span class="hljs-keyword">var</span> raw = <span class="hljs-built_in">JSON</span>.stringify({
+  <span class="hljs-string">&quot;profile_id&quot;</span>: <span class="hljs-number">1</span>,
+  <span class="hljs-string">&quot;answer&quot;</span>: <span class="hljs-number">0</span>
+});
+
+<span class="hljs-keyword">var</span> requestOptions = {
+  <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;PUT&#x27;</span>,
+  <span class="hljs-attr">headers</span>: myHeaders,
+  <span class="hljs-attr">body</span>: raw,
+  <span class="hljs-attr">redirect</span>: <span class="hljs-string">&#x27;follow&#x27;</span>
+};
+
+<span class="hljs-keyword">var</span> url = <span class="hljs-string">&quot;https://&lt;your-app.herokuapp.com/api_raw/update_and_return_estimates&quot;</span>;
+
+fetch(url, requestOptions)
+  .then(<span class="hljs-function"><span class="hljs-params">response</span> =&gt;</span> response.json())
+  .then(<span class="hljs-function"><span class="hljs-params">result</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(result))
+  .catch(<span class="hljs-function"><span class="hljs-params">error</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;error&#x27;</span>, error));
+</div></code></pre>
+<pre><code class="code-line language-python"><div><span class="hljs-keyword">import</span> requests
+<span class="hljs-keyword">import</span> json
+
+url = <span class="hljs-string">&quot;https://&lt;your-app&gt;.herokuapp.com/api_raw/update_and_return_estimates&quot;</span>
+
+payload = json.dumps({
+  <span class="hljs-string">&quot;profile_id&quot;</span>: <span class="hljs-number">1</span>,
+  <span class="hljs-string">&quot;answer&quot;</span>: <span class="hljs-number">0</span>
+})
+headers = {
+  <span class="hljs-string">&#x27;Content-Type&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>
+}
+
+response = requests.request(<span class="hljs-string">&quot;PUT&quot;</span>, url, headers=headers, data=payload)
+
+print(response.text)
+</div></code></pre>
+<p>You will get back an array of posterior estimates for <code>theta</code> that you can store.</p>
+<p>Example response:</p>
+<pre><code><code><div>{
+    estimates: [4.077210796341252,-1.7633689724126045,0.23039175490862895,2.9955465280813383]
+}
+</div></code></code></pre>
+<h3 id="random-design-optional">Random Design (Optional)</h3>
+<p>You can retrieve a random design using a GET call to <code>https://&lt;your-app&gt;.herokuapp.com/api_raw/random_design</code>. This will select a random <code>design</code> and return it. It will not update the <code>posterior</code> or <code>design_history</code> for a user. This call can be used to retrieve sample design output when testing code, to make sure that your API is up and running, or can be used to select questions randomly if you want to implement this feature for a subset of respondents.</p>
+<p>JavaScript Implementation:</p>
+<pre><code class="code-line language-javascript"><div><span class="hljs-keyword">var</span> myHeaders = <span class="hljs-keyword">new</span> Headers();
+myHeaders.append(<span class="hljs-string">&quot;Content-Type&quot;</span>, <span class="hljs-string">&quot;application/json&quot;</span>);
+
+<span class="hljs-keyword">var</span> raw = <span class="hljs-built_in">JSON</span>.stringify({
+  <span class="hljs-string">&quot;survey_id&quot;</span>: <span class="hljs-string">&quot;test&quot;</span>
+});
+
+<span class="hljs-keyword">var</span> requestOptions = {
+  <span class="hljs-attr">method</span>: <span class="hljs-string">&#x27;GET&#x27;</span>,
+  <span class="hljs-attr">headers</span>: myHeaders,
+  <span class="hljs-attr">body</span>: raw,
+  <span class="hljs-attr">redirect</span>: <span class="hljs-string">&#x27;follow&#x27;</span>
+};
+
+<span class="hljs-keyword">var</span> url = <span class="hljs-string">&quot;https://obscure-ravine-81933.herokuapp.com/api_raw/random_design&quot;</span>;
+
+fetch(url, requestOptions)
+  .then(<span class="hljs-function"><span class="hljs-params">response</span> =&gt;</span> response.json())
+  .then(<span class="hljs-function"><span class="hljs-params">result</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(result))
+  .catch(<span class="hljs-function"><span class="hljs-params">error</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(<span class="hljs-string">&#x27;error&#x27;</span>, error));
+</div></code></pre>
+<p>Python Implementation Using Requests:</p>
+<pre><code class="code-line language-python"><div><span class="hljs-keyword">import</span> requests
+<span class="hljs-keyword">import</span> json
+
+url = <span class="hljs-string">&quot;https://&lt;your-app&gt;.herokuapp.com/api_raw/random_design&quot;</span>
+
+payload = json.dumps({
+  <span class="hljs-string">&quot;survey_id&quot;</span>: <span class="hljs-string">&quot;test&quot;</span>
+})
+headers = {
+  <span class="hljs-string">&#x27;Content-Type&#x27;</span>: <span class="hljs-string">&#x27;application/json&#x27;</span>
+}
+
+response = requests.request(<span class="hljs-string">&quot;GET&quot;</span>, url, headers=headers, data=payload)
+
+print(response.text)
+</div></code></pre>
+<h3 id="implementation-notes">Implementation Notes</h3>
+<p>These API calls are all that you need to communicate with your database and run an adaptive choice experiment. In most cases, you will need to transform the question design into a format that is human-readable. You can use your own application or custom coding within your preferred survey website to do this. We also detail how to do this using custom functions within your own application in the section below.</p>
+<p>The <code>heroku-postgresql:hobby-dev</code> is useful for setting up your application and running simple calls. However, increasing |<code>thetas</code>| or |<code>designs</code>| can quickly increase the time needed to compute each question. If your parameter space is very fine, you consider a large number of designs, or you plan on deploying a survey to a large amount of people at once, you may need to increase your Heroku Postgres tier. This process is described in <a href="#making-changes-to-your-database-or-heroku-postgre-plan">Making Changes to your Database or Heroku Postgres Plan</a>. Note, higher tiers may no longer be free.</p>
+<p>As mentioned at the start of this section, you can also decrease the time between questions by tuning the <code>sample_percentage_designs</code> parameter in <code>./user_modules/user_defaults.js</code> or your API calls. Sampling a smaller percentage of <code>designs</code> means that you may not find the <em>optimal</em> design from the <code>designs</code> table. However, you still have a high likelihood of selecting a design that is very good. For example, randomly searching over only 30 questions means that there is a 95% probability that you select a question that is in the top decile. For this reason, randomly searching over your design space can be an easy way to improve speed if you tolerate some some randomness in which question from the grid is chosen.</p>
+<h2 id="example-processing-response-and-implementing-experiment-in-qualtrics">Example: Processing Response and Implementing Experiment in Qualtrics</h2>
+<p>The previous section (<a href="#how-to-query-the-api">How to Query the API</a>) describes how to make API calls and the key functions necessary to perform an adaptive choice experiment using our framework. Please make sure that you review this material before working through this example as knowledge of these function calls will be helpful for understanding this section.</p>
+<p>In this section, we describe how to map a chosen <code>design</code> into a more human-friendly format. We then provide an example for how to implement a survey in Qualtrics. This step is helpful if you are using an external survey website like Qualtrics or SurveyMonkey where it can be more difficult to add custom code.</p>
+<h3 id="processing-data-within-your-application">Processing Data Within Your Application</h3>
+<h4 id="define-question-characteristics">Define Question Characteristics</h4>
+<p>This section will involve making changes to the <code>./user_modules/characteristics.js</code> file. This file contains functions that convert database output into a format that can easily be piped into your chosen survey application. <code>characteristics_per_scenario</code> defines the number of characteristics that will be shown with each scenario. The <code>characteristics</code> object is a JavaScript object that contains information about possible different characteristics that we could consider in a discrete choice framework. This object stores all possible values for your characteristics. In the example, we set three possible attributes. We are interested in finding out how the user values two out of these three characteristics.</p>
+<p>For each respondent, <code>characteristics_per_scenario</code> characteristics are randomly selected from the <code>characteristics</code> object and assigned as characteristics A and B for an individual. We then perform an experiment to determine how much the user values characteristic A (<code>theta[1]</code>), characteristic B (<code>theta[2]</code>), and having both characteristics A and B together (<code>theta[3]</code>). We will also estimate how consistently the individual makes choices (<code>theta[4]</code>).</p>
+<pre><code class="code-line language-js"><div><span class="hljs-keyword">const</span> characteristics_per_scenario = <span class="hljs-number">2</span>; <span class="hljs-comment">// Set to 2 for example</span>
+<span class="hljs-keyword">const</span> example_base_earnings = <span class="hljs-number">100</span>; <span class="hljs-comment">// Example base_earnings used for returning test output</span>
+
+<span class="hljs-keyword">const</span> characteristics = {
+    <span class="hljs-attr">characteristic_x</span>: {
+        <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;Characteristic X - Color&#x27;</span>,
+        <span class="hljs-attr">values</span>: [
+            <span class="hljs-string">&#x27;Red&#x27;</span>,
+            <span class="hljs-string">&#x27;Blue&#x27;</span>
+        ]
+    },
+    <span class="hljs-attr">characteristic_y</span>: {
+        <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;Characteristic Y - Size&#x27;</span>,
+        <span class="hljs-attr">values</span>: [
+            <span class="hljs-string">&#x27;Small&#x27;</span>,
+            <span class="hljs-string">&#x27;Large&#x27;</span>
+        ]
+    },
+    <span class="hljs-attr">characteristic_z</span> : {
+        <span class="hljs-attr">label</span>: <span class="hljs-string">&#x27;Characteristic Z - Number&#x27;</span>,
+        <span class="hljs-attr">values</span>: [
+            <span class="hljs-number">0</span>,
+            <span class="hljs-number">1</span>
+        ]
+    }
+};
+
+</div></code></pre>
+<h4 id="define-process-for-converting-question-information">Define Process for Converting Question Information</h4>
+<p>The function <code>convert_design()</code> maps questions to text values from the characteristics object. We have set up the function to map questions with two characteristics into a discrete choice framework with two options that are described by earnings and two characteristics. This function will generally differ for each user and depends on the structure of your <code>design</code> parameter.</p>
+<ul>
+<li><code>transform_earnings()</code>: how earnings are converted.</li>
+<li><code>sample_characteristics()</code>: how characteristics are assigned to each survey respondent.</li>
+<li><code>check_answer()</code>: how answers are checked.</li>
+<li>etc.</li>
+</ul>
+<p>This section allows each user to flexibly interpret information from the database into a format that works with your desired survey website.</p>
+<h4 id="example-mapping">Example Mapping</h4>
+<p>The code will randomly choose two characteristics from the <code>characteristics</code> object and assign these to be Characteristics A and B for that individual. This module translates question information from the database into the questions that your users will see.</p>
+<p>Consider the following example. Suppose the base option has an earnings value of $10. Suppose characteristic_z is assigned as Characteristic A and characteristic_x is assigned as Characteristic B. The question format from an example query would be received as:</p>
+<pre><code class="code-line language-js"><div>
+{
+    <span class="hljs-attr">index_d</span>: <span class="hljs-number">202</span>,
+    <span class="hljs-attr">design</span>: [<span class="hljs-number">1.5</span>, <span class="hljs-number">1</span>, <span class="hljs-number">0</span>, <span class="hljs-number">1</span>]
+}
+</div></code></pre>
+<p>This question information is mapped into a format that will be stored and used by the survey website using the <code>convert_design()</code> function.</p>
+<p>Mapping:</p>
+<ul>
+<li><code>design[0]</code> = treat_earnings - base_earnings.
+<ul>
+<li><code>base_earnings_0</code> = 10</li>
+<li><code>treat_earnings_0</code> = 11.5</li>
+</ul>
+</li>
+<li><code>design[1]</code> = A Treat - A Base.
+<ul>
+<li><code>base_a_0</code> = 0</li>
+<li><code>treat_a_0</code> = 1</li>
+</ul>
+</li>
+<li><code>design[2]</code> = B Treat - B Base. From this, we know that the values for B are the same for Treat and Base. We then use <code>design[3]</code> to know that these are both valued at 1.
+<ul>
+<li><code>base_b_0</code> = characteristic_x.values[1] = Blue</li>
+<li><code>treat_b_0</code> = characteristic_x.values[1] = Blue</li>
+</ul>
+</li>
+</ul>
+<p>We also store other variables like the raw design data and labels for A and B</p>
+<pre><code class="code-line language-js"><div>{
+    <span class="hljs-string">&quot;diff_earnings_0&quot;</span>: <span class="hljs-number">1.5</span>,
+    <span class="hljs-string">&quot;diff_d1_0&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-string">&quot;diff_d2_0&quot;</span>: <span class="hljs-number">0</span>,
+    <span class="hljs-string">&quot;diff_d3_0&quot;</span>: <span class="hljs-number">1</span>,
+    <span class="hljs-string">&quot;label_a&quot;</span>: <span class="hljs-string">&quot;Characteristic Z - Number&quot;</span>,
+    <span class="hljs-string">&quot;label_b&quot;</span>: <span class="hljs-string">&quot;Characteristic X - Color&quot;</span>,
+    <span class="hljs-string">&quot;base_earnings_0&quot;</span>: <span class="hljs-number">10</span>,
+    <span class="hljs-string">&quot;treat_earnings_0&quot;</span>: <span class="hljs-number">11.5</span>,
+    <span class="hljs-string">&quot;base_a_0&quot;</span>: <span class="hljs-string">&quot;0&quot;</span>,
+    <span class="hljs-string">&quot;base_b_0&quot;</span>: <span class="hljs-string">&quot;Blue&quot;</span>,
+    <span class="hljs-string">&quot;treat_a_0&quot;</span>: <span class="hljs-string">&quot;1&quot;</span>,
+    <span class="hljs-string">&quot;treat_b_0&quot;</span>: <span class="hljs-string">&quot;Blue&quot;</span>
+}
+</div></code></pre>
+<p>You can then display questions in a user-friendly format within your survey by accessing these variables.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Base Option</th>
+<th>Treated Option</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Price</td>
+<td>$10.00</td>
+<td>$11.50</td>
+</tr>
+<tr>
+<td>Characteristic Z - Number</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr>
+<td>Characteristic X - Color</td>
+<td>Blue</td>
+<td>Blue</td>
+</tr>
+</tbody>
+</table>
+<h3 id="setting-up-a-qualtrics-survey">Setting up a Qualtrics Survey</h3>
+<p>In this section, we describe how to set up a survey that choose questions using your new API. We will set up a simple Qualtrics survey, but any survey framework/computer language that supports API calls can access your application. The API calls that we write here will deviate slightly from those described in <a href="#how-to-query-the-api">How to Query the API</a> because we need to transfer additional information back and forth between Qualtrics. This section assumes some familiarity in working with Qualtrics. You should be able to create survey questions and understand how to work with the survey flow. Links for some basic survey features can be found here:</p>
+<ul>
+<li><a href="https://www.qualtrics.com/support/survey-platform/survey-module/survey-flow/survey-flow-overview/">Survey Flow Overview</a></li>
+<li><a href="https://www.qualtrics.com/support/survey-platform/survey-module/survey-flow/standard-elements/embedded-data/">Embedded Data</a></li>
+<li><a href="https://www.qualtrics.com/support/survey-platform/survey-module/survey-flow/advanced-elements/web-service/">Web Service</a></li>
+<li>Basics
+<ul>
+<li><a href="https://www.qualtrics.com/support/survey-platform/survey-module/editing-questions/creating-questions/?parent=p0030">Creating Questions</a></li>
+<li><a href="https://www.qualtrics.com/support/survey-platform/survey-module/editing-questions/piped-text/piped-text-overview/?parent=p0064">Piped Text</a></li>
+<li><a href="https://www.qualtrics.com/support/survey-platform/survey-module/editing-questions/formatting-questions/?parent=p0030">Formatting Question</a></li>
+</ul>
+</li>
+</ul>
+<p>The QSF file for the example survey described below is contained in <code>./qualtrics_tutorial/survey_example/bace_sample.qsf</code>. To follow along, you can create a new survey in Qualtrics by importing this QSF file into Qualtrics. <a href="https://www.qualtrics.com/support/survey-platform/survey-module/survey-tools/import-and-export-surveys/">Instructions for importing surveys</a> are available on the Qualtrics website.</p>
+<h4 id="collect-information-from-users">Collect Information From Users</h4>
+<p>First, use survey questions to collect information about your user that will be used to create the user's profile. The variables that we need to collect from the user or set within Qualtrics are <code>survey_id</code> and <code>base_earnings</code>. These variables can be generated within Qualtrics or can be collected from a user's responses. In this section, we will collect these values from the user and store them as embedded data. More detailed instructions for this process are described on the Qualtrics site: <a href="https://www.qualtrics.com/support/survey-platform/survey-module/survey-flow/standard-elements/embedded-data/">Embedded Data</a>.</p>
+<ul>
+<li><code>survey_id</code> (string): A string that can identify each user and is used when creating their profile within the database.</li>
+<li><code>base_earnings</code> (float): The earnings value for the base option. This can be based on user input or randomly generated from a list of values.</li>
+</ul>
+<p>In this section, we will collect <code>survey_id</code> from the user and set <code>base_earnings</code> randomly using embedded data. We will store these variables and use them in future API calls when creating profiles and choosing designs.</p>
+<p>First, add a question that asks for the user's user id.</p>
+<p><img src="./qualtrics_tutorial/pics/survey_id.PNG" alt="Survey ID" class="loading" id="image-hash--927097111" data-src="./qualtrics_tutorial/pics/survey_id.PNG"></p>
+<p>Open up the survey flow element. Underneath our create_profile block click 'Add Below' -&gt; 'Embedded Data'. We can then access and store the answers from these questions as embedded data that can be used elsewhere in Qualtrics.</p>
+<p>We can set <code>survey_id</code> equal to the user's answer to the survey_id question inserting piped text. We can also generate <code>base_earnings</code> to be a random integer between 15 and 20. The base price for each user will be randomly fixed at the number <code>base_earnings</code>. We store both as embedded data that can be accessed as variables throughout the survey.</p>
+<p>At this time, also add an embedded data variable <code>sample_percentage_designs</code>. Set this variable to be a number between 0 and 100. This represents the percentage of the designs that you want to consider when choosing each question and will be used in future API calls. If you want the algorithm to choose questions faster, particularly if you have a dense design/parameter space, you can decrease this number. You will choose the optimal design from a random subset of X% of the designs table. Increasing this number means you consider a larger number of questions, and thus, the time between questions will be larger for higher percentages.</p>
+<p><img src="./qualtrics_tutorial/pics/embedded_data.PNG" alt="Embedded Data" class="loading" id="image-hash--1074843512" data-src="./qualtrics_tutorial/pics/embedded_data.PNG"></p>
+<h4 id="create-profile-using-web-service">Create Profile Using Web Service</h4>
+<p>In this section, we will create a profile for the user by connecting to our application using a web service. The Qualtrics web service feature is described <a href="https://www.qualtrics.com/support/survey-platform/survey-module/survey-flow/advanced-elements/web-service/">here</a>.</p>
+<p>Return to the survey flow. Add a web service element below the embedded data block that you just created.This feature allows us to send and receive information from a specific URL. To create our user's profile, we will use a POST request to our application. We add the <code>survey_id</code> and <code>base_earnings</code> variables to the body of our POST request as JSON variables. This API call will go to the URL <code>https://&lt;your-app&gt;.com/api_custom/create_profile</code>.</p>
+<p>Qualtrics allows you to test API calls using the 'test' button. This sends your request to the specified URL and receives feedback, which you can add as embedded data. Note, embedded data variables will not be filled by Qualtrics until user's have input their data. For example, once a respondent answers the survey_id question the ${q://QID1/ChoiceTextEntryValue} will be replaced with the user's answer. If a test ever fails (particularly when debugging user-defined functions later on), click 'View Raw Data' to see what is being returned by your call. This message may help you find the issue.</p>
+<p>We've added a feature that makes saving embedded data easier using this test button. Add <code>test = 'test'</code> as a body parameter to your request. This returns sample feedback that you can use to set up your Web Service to store embedded data. After sending a test request, you will receive a response indicating that a profile has been created for this survey id with a specific profile_id (if the 'test' parameter is set, then the profile_id will equal 0). Note this 'test' feature requires custom coding and is only implemented for the functions described below.</p>
+<p>After running a test API call, we will need to store these variables as embedded data based on our API call, so select 'All' and click 'Add Embedded Data'. When a user arrives to this portion of the survey, the web service element will be triggered creating a new profile for that user. We store the user's <code>profile_id</code> and other profile-specific variables as embedded data.</p>
+<p><img src="./qualtrics_tutorial/pics/create_profile.PNG" alt="Create Profile" class="loading" id="image-hash--1241714029" data-src="./qualtrics_tutorial/pics/create_profile.PNG"></p>
+<p><font size="+1"><strong>Warning: Make sure to remove the test parameter after setting embedded data and before deploying. If the test parameter is set to &quot;test&quot;, then you will not be running queries on your database</strong></font></p>
+<p>We can now review what's going on in the Web Service Element above:</p>
+<ul>
+<li>We are going to make a POST call to <code>https://&lt;your-app&gt;.com/api_custom/create_profile</code>.</li>
+<li>Body parameters that describe how to create a profile are included in this call.</li>
+<li>(In the background) the web application queries the database that you just created and creates a profile for the specific user.</li>
+<li>We receive back the user's <code>profile_id</code> and the values that are assigned as <code>characteristic_a</code> and <code>characteristic_b</code> for this individual.</li>
+<li>We save these variables as embedded data, and they will be included in our final data file.</li>
+</ul>
+<h4 id="choose-and-display-first-design">Choose and Display First Design</h4>
+<p>Now that you have created a profile, you can set up a web service to choose the first question. Add a new web service element below what you just used to generate the profile. You will now make a PUT request to <code>https://&lt;your-app&gt;.com/api_custom/choose_first_design</code>. Include the following parameters and include the following characteristics as body parameters. Each parameter is set using an embedded data field for the relevant parameter.</p>
+<p><img src="./qualtrics_tutorial/pics/first_design.PNG" alt="First Design API" class="loading" id="image-hash-753583194" data-src="./qualtrics_tutorial/pics/first_design.PNG"></p>
+<p>You can follow the same procedure to test an API call and set up your embedded data. Include the parameter test as 'test' in your request to set up embedded data, and make sure to delete this parameter before running your actual experiment.</p>
+<p><strong>Notice: Make sure to set all embedded data variables after each web service. This guarantees that they will be present in your exported data.</strong></p>
+<p>Now, we want to create a survey question that displays our question information. Return to the survey builder and create a new block titled 'Question 0'. Create a multiple choice question with a horizontal alignment and two questions. Add 'Which job would you choose?' as the question text. In the survey flow, make sure the new block comes <em>after</em> your web calls to create a profile and choose the first design.</p>
+<p>You can insert piped text into this question which will be dynamically populated when the individual takes the survey. Note also that the 'Rich Content Editor...' is helpful for formatting text.</p>
+<p>Copy and paste the following text into the text for each answer choice by clicking the dropdown next to 'Click to write Choice 1' -&gt; 'Rich Content Editor' -&gt; 'Source'. Once in source you can past html code. Note, you can format the questions however you like, but this formatting has worked well for us previously. Paste the Option A code in one answer and Option B code in another answer.</p>
+<pre><code class="code-line language-html"><div>&lt;! Option A&gt;
+<span class="hljs-tag">&lt;<span class="hljs-name">table</span> <span class="hljs-attr">border</span>=<span class="hljs-string">&quot;1&quot;</span> <span class="hljs-attr">cellpadding</span>=<span class="hljs-string">&quot;1&quot;</span> <span class="hljs-attr">cellspacing</span>=<span class="hljs-string">&quot;1&quot;</span> <span class="hljs-attr">style</span>=<span class="hljs-string">&quot;width:320px;&quot;</span>&gt;</span>
+ <span class="hljs-tag">&lt;<span class="hljs-name">tbody</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">td</span> <span class="hljs-attr">style</span>=<span class="hljs-string">&quot;text-align: center;&quot;</span>&gt;</span>Option A<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>$${e://Field/base_earnings_0}<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>${e://Field/base_a_0}<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>${e://Field/base_b_0}<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+ <span class="hljs-tag">&lt;/<span class="hljs-name">tbody</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">table</span>&gt;</span>
+
+&lt;! Option B&gt;
+<span class="hljs-tag">&lt;<span class="hljs-name">table</span> <span class="hljs-attr">border</span>=<span class="hljs-string">&quot;1&quot;</span> <span class="hljs-attr">cellpadding</span>=<span class="hljs-string">&quot;1&quot;</span> <span class="hljs-attr">cellspacing</span>=<span class="hljs-string">&quot;1&quot;</span> <span class="hljs-attr">style</span>=<span class="hljs-string">&quot;width:320px;&quot;</span>&gt;</span>
+ <span class="hljs-tag">&lt;<span class="hljs-name">tbody</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">td</span> <span class="hljs-attr">style</span>=<span class="hljs-string">&quot;text-align: center;&quot;</span>&gt;</span>Option B<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>$${e://Field/treat_earnings_0}<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>${e://Field/treat_a_0}<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">tr</span>&gt;</span>
+   <span class="hljs-tag">&lt;<span class="hljs-name">td</span>&gt;</span>${e://Field/treat_b_0}<span class="hljs-tag">&lt;/<span class="hljs-name">td</span>&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-name">tr</span>&gt;</span>
+ <span class="hljs-tag">&lt;/<span class="hljs-name">tbody</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">table</span>&gt;</span>
+</div></code></pre>
+<p>After creating your question, make sure to set the recode value of the <em>treated</em> option (Option B) to equal the value of <code>correct_recode_value</code> in <code>./user_modules/characteristics.js</code> (default = 1) and require the individual to choose a response. Recode values can be set using the 'Recode values' tab.</p>
+<p><img src="./qualtrics_tutorial/pics/update_recode_values.PNG" alt="Recode Values" class="loading" id="image-hash-1674022872" data-src="./qualtrics_tutorial/pics/update_recode_values.PNG"></p>
+<p>You can test your survey using the 'Preview' button. Enter a survey id and a base_earnings. The embedded data fields will be populated when they are displayed to the respondent.</p>
+<p><img src="./qualtrics_tutorial/pics/example_question.PNG" alt="Example Question" class="loading" id="image-hash--1276751544" data-src="./qualtrics_tutorial/pics/example_question.PNG"></p>
+<h4 id="update-posterior-and-choose-new-design">Update Posterior and Choose New Design</h4>
+<p>You can update the posterior based on the previous answer and choose a new question using a PUT call to <code>https://&lt;your-app&gt;.com/api_custom/update_and_choose_design</code>. Return to the survey flow. Below the Question 0 block, add a new Web Service element to the URL above. You need to specify three values:</p>
+<ul>
+<li><code>profile_id = ${e://Field/profile_id}</code></li>
+<li><code>answer = ${e://Field/&lt;QID&gt;/SelectedChoicesRecode}</code> where &lt;QID&gt; is the Qualtrics question id for the previous question. This can be inserted by clicking 'Insert Piped Text' -&gt; 'Survey Question' -&gt; Previous Question -&gt; 'Selected Choices Recode'. The steps are detailed in the photo below.</li>
+<li><code>qnumber = 1</code> This is the question number for the <u>next</u> question. This ensures that your embedded data matches the values in the next question and will be recorded in your exported data.</li>
+<li><code>base_earnings = ${e://Field/base_earnings}</code></li>
+<li><code>characteristic_a = ${e://Field/characteristic_a}</code></li>
+<li><code>characteristic_b = ${e://Field/characteristic_b}</code></li>
+<li><code>sample_percentge_designs = ${e://Field/sample_percentage_designs}</code></li>
+</ul>
+<p>Use the same method as above (insert default values) to test the response and add embedded data variables.</p>
+<p><img src="./qualtrics_tutorial/pics/update_and_choose_design.PNG" alt="Update and Choose" class="loading" id="image-hash--1244657611" data-src="./qualtrics_tutorial/pics/update_and_choose_design.PNG"></p>
+<p>Then add a new question below with the same format as above but change the question number to match that of the web service above. Make sure that any question that uses output from a web service comes after that web service element in the Survey Flow. Repeat this process for as many questions as you'd like.</p>
+<h4 id="access-posterior-estimates">Access Posterior Estimates</h4>
+<p>After the final question of your survey, you can calculate and store posterior estimates using a PUT request.</p>
+<p>Make a put request to <code>https://&lt;your-app&gt;.com/api_custom/update_and_return_estimates</code> with the following elements:</p>
+<ul>
+<li><code>profile_id = ${e://Field/profile_id}</code></li>
+<li><code>answer = ${q://&lt;QID-last-question&gt;/SelectedChoicesRecode}</code></li>
+</ul>
+<p><img src="./qualtrics_tutorial/pics/estimates.PNG" alt="Estimates" class="loading" id="image-hash--1507279468" data-src="./qualtrics_tutorial/pics/estimates.PNG"></p>
+<p>Follow the same procedure to store embedded data variable using a test. If you want to view these estimates within your survey to confirm while debugging, you can pipe them into a question after this put request using the following text:</p>
+<pre><code><code><div>Posterior Estimates:
+estimate.0: ${e://Field/estimates.0}
+estimate.1: ${e://Field/estimates.1}
+estimate.2: ${e://Field/estimates.2}
+estimate.3: ${e://Field/estimates.3}
+</div></code></code></pre>
+<h4 id="common-mistakes">Common Mistakes</h4>
+<ul>
+<li><code>qnumber</code> needs to be changed for each question. It should match the embedded data variables that will appear in the next question you ask.</li>
+<li>Make sure that the numbers on embedded data variables from each call match the value of <code>qnumber</code> in the body parameter for that call. If you copy web service elements that are repeated, make sure to delete the embedded data variables that are saved, rerun a call with the 'test' parameter, and set embedded data variables based on that test call. This guarantees that the variables respondents see are saved in your data set.</li>
+<li>Remove the test parameter after using it to retrieve the embedded data variable names. Otherwise, your calls will not actually query the database.</li>
+<li>Confirm that survey flow is correct. Web service elements are not displayed in the survey builder, so you need to confirm that the order of everything is correct. Make sure that questions that use information from an API call appear after that call.</li>
+<li>Make sure that all embedded data variables from API calls are marked to be saved. If you do not save responses, the questions in your survey will be blank to respondents, and the values will not be saved in your data.</li>
+<li>If an API call isn't running correctly, make sure that there are no typos or mislabeled variables in your call. Also, make sure that you use the type of request mentioned in the text (e.g. GET, POST, PUT, etc.).</li>
+</ul>
+<h2 id="additional-features">Additional Features</h2>
+<p>Add resources here for YouTube videos/instructional posts that are helpful for writing API calls.</p>
+
+</body>
+</html>
