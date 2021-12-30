@@ -1,5 +1,5 @@
 // Input your name here
-const author_name = 'Your Name Here';
+const author_name = 'Anna Swanson';
 
 // Should the algorithm consider designs that have already been shown to a respondent?
 const allow_repeated_designs = Boolean(false); // true if yes, false if no

@@ -44,6 +44,3 @@ CREATE TABLE full_likelihood(
 
 -- Exit message
 SELECT 'Finished running db_create_tables.sql';
-
-
-
