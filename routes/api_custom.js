@@ -48,7 +48,7 @@ router.post('/create_profile', async (req, res) => {
 
             // Receive data. Format as JSON object with additional information that you want to include.
             
-            // Add characterist a and b variables to data
+            // Add characteristic a and b variables to data
             data.characteristic_a = characteristic_a;
             data.characteristic_b = characteristic_b;
 

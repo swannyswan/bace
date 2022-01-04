@@ -1,24 +1,24 @@
-const characteristics_per_scenario = 2; // Set to 2 for example
+const characteristics_per_scenario = 3; // 3 characteristics (trees presence, tree size, and grass presence)
 const example_base_earnings = 100; // Example base_earnings used for returning test output
 const treated_survey_value = 1; // Recode value in Qualtrics
 
 const characteristics = {
     characteristic_x: {
-        label: 'Characteristic X - Color',
+        label: 'Characteristic X - Trees Present',
         values: [
-            'Red',
-            'Blue'
+            0,
+            1
         ]
     },
     characteristic_y: {
-        label: 'Characteristic Y - Size',
+        label: 'Characteristic Y - Tree Size',
         values: [
             'Small',
             'Large'
         ]
     },
     characteristic_z : {
-        label: 'Characteristic Z - Number',
+        label: 'Characteristic Z - Grass Present',
         values: [
             0,
             1
@@ -135,7 +135,7 @@ const check_answer = function(answer, value_of_treated_option = treated_survey_v
 // Sample n keys from obj without replacement.
 const sample_characteristics = function(obj, n = characteristics_per_scenario) {
 
-    var obj_keys  = Object.keys(obj);
+    var obj_keys = Object.keys(obj);
     return(shuffle(obj_keys).slice(0, n));
 
 }
