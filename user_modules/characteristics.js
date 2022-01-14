@@ -4,17 +4,17 @@ const treated_survey_value = 1; // Recode value in Qualtrics
 
 const characteristics = {
     characteristic_x: {
-        label: 'Characteristic X - Trees Present',
+        label: 'Characteristic X - Small Trees Present',
         values: [
             0,
             1
         ]
     },
     characteristic_y: {
-        label: 'Characteristic Y - Tree Size',
+        label: 'Characteristic Y - Large Trees Present',
         values: [
-            'Small',
-            'Large'
+            0,
+            1
         ]
     },
     characteristic_z : {
