@@ -1,27 +1,21 @@
-const characteristics_per_scenario = 3; // 3 characteristics (trees presence, tree size, and grass presence)
+const characteristics_per_scenario = 2; // 2 characteristics (X: tree size, Y: grass presence)
 const example_base_earnings = 100; // Example base_earnings used for returning test output
 const treated_survey_value = 1; // Recode value in Qualtrics
 
 const characteristics = {
     characteristic_x: {
-        label: 'Characteristic X - Small Trees Present',
+        label: 'Characteristic X - Tree Size',
         values: [
-            0,
-            1
+            0, // no trees
+            1, // small trees
+            2 // large trees
         ]
     },
-    characteristic_y: {
-        label: 'Characteristic Y - Large Trees Present',
+    characteristic_y : {
+        label: 'Characteristic Y - Grass Present',
         values: [
-            0,
-            1
-        ]
-    },
-    characteristic_z : {
-        label: 'Characteristic Z - Grass Present',
-        values: [
-            0,
-            1
+            0, // no grass
+            1 // grass
         ]
     }
 };
