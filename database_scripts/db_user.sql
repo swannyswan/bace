@@ -32,6 +32,10 @@ SELECT gen_grid_thetas(theta => ARRAY[
 
 INSERT INTO design_structures(design_structure)
 VALUES
+    (ARRAY[2, 1, 1]),
+    (ARRAY[2, -1, 0]),
+    (ARRAY[2, 0, 0]),
+    (ARRAY[2, 0, 1]),
     (ARRAY[1, 1, 1]),
     (ARRAY[1, -1, 0]),
     (ARRAY[1, 0, 0]),
