@@ -32,7 +32,35 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     const [base_e, treat_e] = transform_earnings(base_earnings, diff_earnings)
 
     // Set base and treat values based on question designs.
-    if (data.design[1] === 1 && data.design[2] === 1 & data.design[3] === 1) {
+    if (data.design[1] === 2 && data.design[2] === 1 & data.design[3] === 1) {
+
+        base_a = 0;
+        base_b = 0;
+        treat_a = 2;
+        treat_b = 1;
+
+    } else if (data.design[1] === 2 && data.design[2] === -1 & data.design[3] === 0) {
+
+        base_a = 0;
+        base_b = 1;
+        treat_a = 2;
+        treat_b = 0;
+
+    } else if (data.design[1] === 2 && data.design[2] === 0 & data.design[3] === 0) {
+
+        base_a = 0;
+        base_b = 0;
+        treat_a = 2;
+        treat_b = 0;
+
+    } else if (data.design[1] === 2 && data.design[2] === 0 & data.design[3] === 1) {
+
+        base_a = 0;
+        base_b = 1;
+        treat_a = 2;
+        treat_b = 1;
+
+    } else if (data.design[1] === 1 && data.design[2] === 1 & data.design[3] === 1) {
         
         base_a = 0;
         base_b = 0;
