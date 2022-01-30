@@ -2,6 +2,13 @@ const characteristics_per_scenario = 2; // 2 characteristics (X: tree size, Y: g
 const example_base_earnings = 100; // Example base_earnings used for returning test output
 const treated_survey_value = 1; // Recode value in Qualtrics
 
+// Image urls from Qualtrics
+const baseline = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
+const small_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
+const small_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eCAXoH8FEEgqMjc";
+const large_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC";
+const large_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK";
+
 const characteristics = {
     characteristic_x: {
         label: 'Characteristic X - Tree Size',
@@ -11,7 +18,7 @@ const characteristics = {
             2 // large trees
         ]
     },
-    characteristic_y : {
+    characteristic_y: {
         label: 'Characteristic Y - Grass Present',
         values: [
             0, // no grass
@@ -27,6 +34,8 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     const diff_earnings = parseFloat(data.design[0]);
 
     var base_a, base_b, treat_a, treat_b;
+    var base_img;
+    var treat_img;
 
     // Set base_earn and treat_earn from base_earning and treat_earnings.
     const [base_e, treat_e] = transform_earnings(base_earnings, diff_earnings)
@@ -39,12 +48,18 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 2;
         treat_b = 1;
 
+        base_img = baseline;
+        treat_img = large_trees_grass;
+
     } else if (data.design[1] === 2 && data.design[2] === -1 & data.design[3] === 0) {
 
         base_a = 0;
         base_b = 1;
         treat_a = 2;
         treat_b = 0;
+
+        base_img = ""; // should be grass with no trees (remove altogether?)
+        treat_img = large_trees;
 
     } else if (data.design[1] === 2 && data.design[2] === 0 & data.design[3] === 0) {
 
@@ -53,12 +68,18 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 2;
         treat_b = 0;
 
+        base_img = baseline;
+        treat_img = large_trees;
+
     } else if (data.design[1] === 2 && data.design[2] === 0 & data.design[3] === 1) {
 
         base_a = 0;
         base_b = 1;
         treat_a = 2;
         treat_b = 1;
+
+        base_img = ""; // again, grass no trees
+        treat_img = large_trees_grass;
 
     } else if (data.design[1] === 1 && data.design[2] === 1 & data.design[3] === 1) {
         
@@ -67,12 +88,18 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 1;
         treat_b = 1;
 
+        base_img = baseline;
+        treat_img = small_trees_grass;
+
     } else if (data.design[1] === 1 && data.design[2] === -1 & data.design[3] === 0) {
 
         base_a = 0;
         base_b = 1;
         treat_a = 1;
         treat_b = 0;
+
+        base_img = ""; // dang
+        treat_img = small_trees;
 
     } else if (data.design[1] === 1 && data.design[2] === 0 & data.design[3] === 0) {
 
@@ -81,12 +108,18 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 1;
         treat_b = 0;
 
+        base_img = baseline;
+        treat_img = small_trees;
+
     } else if (data.design[1] === 1 && data.design[2] === 0 & data.design[3] === 1) {
 
         base_a = 0;
         base_b = 1;
         treat_a = 1;
         treat_b = 1;
+
+        base_img = ""; // rip
+        treat_img = small_trees_grass;
 
     } else if (data.design[1] === 0 && data.design[2] === 1 & data.design[3] === 0) {
 
@@ -95,6 +128,9 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 0;
         treat_b = 1;
 
+        base_img = baseline;
+        treat_img = ""; // rip x2
+
     } else if (data.design[1] === 0 && data.design[2] === 1 & data.design[3] === 1) {
 
         base_a = 1;
@@ -102,7 +138,12 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 1;
         treat_b = 1;
 
+        base_img = small_trees;
+        treat_img = small_trees_grass;
+
     };
+
+
 
     // Set base and treat text values
     var base_char_a, base_char_b, treat_char_a, treat_char_b;
@@ -127,10 +168,15 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     // Set design information that will be seen by respondent
     output['base_earnings_' + qnumber] = base_e;
     output['treat_earnings_' + qnumber] = treat_e;
-    output['base_a_' + qnumber] = base_char_a;
-    output['base_b_' + qnumber] = base_char_b;
-    output['treat_a_' + qnumber] = treat_char_a;
-    output['treat_b_' + qnumber] = treat_char_b;
+
+    // new
+    output['base_img_' + qnumber] = base_img;
+    output['treat_img_' + qnumber] = treat_img;
+
+    // output['base_a_' + qnumber] = base_char_a;
+    // output['base_b_' + qnumber] = base_char_b;
+    // output['treat_a_' + qnumber] = treat_char_a;
+    // output['treat_b_' + qnumber] = treat_char_b;
 
     // Return output
     return(output);
