@@ -172,6 +172,10 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     // new
     output['base_img_' + qnumber] = base_img;
     output['treat_img_' + qnumber] = treat_img;
+    console.log("base_img:");
+    console.log(base_img);
+    console.log("treat_img");
+    console.log(treat_img);
 
     output['base_a_' + qnumber] = base_char_a;
     output['base_b_' + qnumber] = base_char_b;
