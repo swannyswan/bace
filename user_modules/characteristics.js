@@ -8,11 +8,11 @@ const treated_survey_value = 1; // Recode value in Qualtrics
 // const small_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eCAXoH8FEEgqMjc";
 // const large_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC";
 // const large_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK";
-const baseline = 0;
-const small_trees = 1;
-const small_trees_grass = 1.5;
-const large_trees = 2;
-const large_trees_grass = 2.5;
+// const baseline = 0;
+// const small_trees = 1;
+// const small_trees_grass = 1.5;
+// const large_trees = 2;
+// const large_trees_grass = 2.5;
 
 const characteristics = {
     characteristic_x: {
@@ -37,6 +37,12 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
 
     // Store earnings difference
     const diff_earnings = parseFloat(data.design[0]);
+
+    const baseline = 0;
+    const small_trees = 1;
+    const small_trees_grass = 1.5;
+    const large_trees = 2;
+    const large_trees_grass = 2.5;
 
     var base_a, base_b, treat_a, treat_b;
     var base_img;
