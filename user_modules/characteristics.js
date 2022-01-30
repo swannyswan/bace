@@ -173,10 +173,10 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     output['base_img_' + qnumber] = base_img;
     output['treat_img_' + qnumber] = treat_img;
 
-    // output['base_a_' + qnumber] = base_char_a;
-    // output['base_b_' + qnumber] = base_char_b;
-    // output['treat_a_' + qnumber] = treat_char_a;
-    // output['treat_b_' + qnumber] = treat_char_b;
+    output['base_a_' + qnumber] = base_char_a;
+    output['base_b_' + qnumber] = base_char_b;
+    output['treat_a_' + qnumber] = treat_char_a;
+    output['treat_b_' + qnumber] = treat_char_b;
 
     // Return output
     return(output);
