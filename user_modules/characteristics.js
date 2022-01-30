@@ -3,11 +3,16 @@ const example_base_earnings = 100; // Example base_earnings used for returning t
 const treated_survey_value = 1; // Recode value in Qualtrics
 
 // Image urls from Qualtrics
-const baseline = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
-const small_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
-const small_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eCAXoH8FEEgqMjc";
-const large_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC";
-const large_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK";
+// const baseline = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
+// const small_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
+// const small_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eCAXoH8FEEgqMjc";
+// const large_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC";
+// const large_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK";
+const baseline = 0;
+const small_trees = 1;
+const small_trees_grass = 1.5;
+const large_trees = 2;
+const large_trees_grass = 2.5;
 
 const characteristics = {
     characteristic_x: {
@@ -172,10 +177,6 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     // new
     output['base_img_' + qnumber] = base_img;
     output['treat_img_' + qnumber] = treat_img;
-    console.log("base_img:");
-    console.log(base_img);
-    console.log("treat_img");
-    console.log(treat_img);
 
     output['base_a_' + qnumber] = base_char_a;
     output['base_b_' + qnumber] = base_char_b;
