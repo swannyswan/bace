@@ -5,7 +5,7 @@ const router = express.Router();
 // Other requirements
 const db = require('../db.js'); // db connection
 const types = require('pg').types; // process postgres data types
-const user = require('../user_modules/characteristics.js'); // import user specifiect functions
+const user = require('../user_modules/characteristics.js'); // import user specific functions
 const user_defaults = require('../user_modules/user_defaults.js');
 
 // Converts numeric type, which arrives as a string from postgres, to float
