@@ -96,7 +96,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 2;
         treat_b = 1;
 
-        base_img = ""; // again, grass no trees
+        base_img = grass; // again, grass no trees
         treat_img = large_trees_grass;
 
     } else if (data.design[1] === 1 && data.design[2] === 1 & data.design[3] === 1) {
