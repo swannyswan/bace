@@ -76,7 +76,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 2;
         treat_b = 0;
 
-        base_img = ""; // should be grass with no trees (remove altogether?)
+        base_img = grass; // should be grass with no trees (remove altogether?)
         treat_img = large_trees;
 
     } else if (data.design[1] === 2 && data.design[2] === 0 & data.design[3] === 0) {
@@ -116,7 +116,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 1;
         treat_b = 0;
 
-        base_img = ""; // dang
+        base_img = grass; // dang
         treat_img = small_trees;
 
     } else if (data.design[1] === 1 && data.design[2] === 0 & data.design[3] === 0) {
@@ -136,7 +136,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 1;
         treat_b = 1;
 
-        base_img = ""; // rip
+        base_img = grass; // rip
         treat_img = small_trees_grass;
 
     } else if (data.design[1] === 0 && data.design[2] === 1 & data.design[3] === 0) {
@@ -147,7 +147,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_b = 1;
 
         base_img = baseline;
-        treat_img = ""; // rip x2
+        treat_img = grass; // rip x2
 
     } else if (data.design[1] === 0 && data.design[2] === 1 & data.design[3] === 1) {
 
