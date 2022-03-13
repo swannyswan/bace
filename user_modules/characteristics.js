@@ -39,11 +39,11 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     const diff_earnings = parseFloat(data.design[0]);
 
     const baseline = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga\"";
-    const small_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga\"";
+    const small_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_bpbbTyvDu0bNWFo\"";
     const small_trees_grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eCAXoH8FEEgqMjc\"";
     const large_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC\"";
     const large_trees_grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK\"";
-    const grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_5ps4NErUcNoGTd4\""; // TODO: actually implement/remove
+    const grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_5ps4NErUcNoGTd4\"";
 
     // const baseline = 0;
     // const small_trees = 1;
