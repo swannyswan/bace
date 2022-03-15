@@ -8,6 +8,7 @@ const treated_survey_value = 1; // Recode value in Qualtrics
 // const small_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eCAXoH8FEEgqMjc";
 // const large_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC";
 // const large_trees_grass = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK";
+
 // const baseline = 0;
 // const small_trees = 1;
 // const small_trees_grass = 1.5;
@@ -42,7 +43,8 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     const small_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_bpbbTyvDu0bNWFo\"";
     const small_trees_grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eCAXoH8FEEgqMjc\"";
     const large_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC\"";
-    const large_trees_grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK\"";
+    // const large_trees_grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK\"";
+    const large_trees_grass = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_8qqRVOS6rtEqN2m\"";
     const grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_5ps4NErUcNoGTd4\"";
 
     // const baseline = 0;
@@ -76,7 +78,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 2;
         treat_b = 0;
 
-        base_img = grass; // should be grass with no trees (remove altogether?)
+        base_img = grass;
         treat_img = large_trees;
 
     } else if (data.design[1] === 2 && data.design[2] === 0 & data.design[3] === 0) {
@@ -96,7 +98,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 2;
         treat_b = 1;
 
-        base_img = grass; // again, grass no trees
+        base_img = grass;
         treat_img = large_trees_grass;
 
     } else if (data.design[1] === 1 && data.design[2] === 1 & data.design[3] === 1) {
@@ -116,7 +118,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 1;
         treat_b = 0;
 
-        base_img = grass; // dang
+        base_img = grass;
         treat_img = small_trees;
 
     } else if (data.design[1] === 1 && data.design[2] === 0 & data.design[3] === 0) {
@@ -136,7 +138,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_a = 1;
         treat_b = 1;
 
-        base_img = grass; // rip
+        base_img = grass;
         treat_img = small_trees_grass;
 
     } else if (data.design[1] === 0 && data.design[2] === 1 & data.design[3] === 0) {
@@ -147,7 +149,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
         treat_b = 1;
 
         base_img = baseline;
-        treat_img = grass; // rip x2
+        treat_img = grass;
 
     } else if (data.design[1] === 0 && data.design[2] === 1 & data.design[3] === 1) {
 
