@@ -46,12 +46,12 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     // const large_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC\"";
     // const large_trees_grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK\"";
 
-    const baseline = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_bDZ1es5AKGDlTpQ\"";
+    const baseline = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_0MMriqFLCaVcZ9k\"";
     const grass = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_5bBC9wsfVJ2o5HE\"";
     const small_trees = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_1MIa2cxrKN6ayzQ\"";
     const small_trees_grass = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_5imjREwYrKP30t8\"";
     const large_trees = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_0dlnJ4KLhWDf8eG\"";
-    const large_trees_grass = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_8qqRVOS6rtEqN2m\"";
+    const large_trees_grass = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_88rRVmHNCWXLTlY\"";
 
     // const baseline = 0;
     // const small_trees = 1;
