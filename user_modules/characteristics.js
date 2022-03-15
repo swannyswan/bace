@@ -39,13 +39,19 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     // Store earnings difference
     const diff_earnings = parseFloat(data.design[0]);
 
-    const baseline = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga\"";
-    const small_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_bpbbTyvDu0bNWFo\"";
-    const small_trees_grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eCAXoH8FEEgqMjc\"";
-    const large_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC\"";
+    // const baseline = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga\"";
+    // const grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_5ps4NErUcNoGTd4\"";
+    // const small_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_bpbbTyvDu0bNWFo\"";
+    // const small_trees_grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eCAXoH8FEEgqMjc\"";
+    // const large_trees = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_6x1QMgV79lnzrWC\"";
     // const large_trees_grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_eu3gFaniycmoKUK\"";
+
+    const baseline = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_bDZ1es5AKGDlTpQ\"";
+    const grass = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_5bBC9wsfVJ2o5HE\"";
+    const small_trees = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_1MIa2cxrKN6ayzQ\"";
+    const small_trees_grass = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_5imjREwYrKP30t8\"";
+    const large_trees = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_0dlnJ4KLhWDf8eG\"";
     const large_trees_grass = "\"https://brown.co1.qualtrics.com/ControlPanel/Graphic.php?IM=IM_8qqRVOS6rtEqN2m\"";
-    const grass = "\"https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_5ps4NErUcNoGTd4\"";
 
     // const baseline = 0;
     // const small_trees = 1;
