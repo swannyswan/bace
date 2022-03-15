@@ -34,7 +34,7 @@ const characteristics = {
 };
 
 // Takes in design input. Returns Base and Treated Values
-const convert_design = function(data, characteristics, qnumber, base_earnings, characteristic_a, characteristic_b){
+const convert_design = function(data, characteristics, qnumber, base_earnings, characteristic_a, characteristic_b) {
 
     // Store earnings difference
     const diff_earnings = parseFloat(data.design[0]);
@@ -229,9 +229,9 @@ const check_answer = function(answer, value_of_treated_option = treated_survey_v
 // Sample n keys from obj without replacement.
 const sample_characteristics = function(obj, n = characteristics_per_scenario) {
 
-    var obj_keys = Object.keys(obj);
-    return(shuffle(obj_keys).slice(0, n));
-
+    // var obj_keys = Object.keys(obj);
+    // return(shuffle(obj_keys).slice(0, n));
+    return Object.keys(obj);
 }
 
 // Shuffle array using Fisher-Yates algorithm
