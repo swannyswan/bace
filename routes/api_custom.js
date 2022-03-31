@@ -54,8 +54,10 @@ router.post('/create_profile', async (req, res) => {
             // Add characteristic a and b variables to data
             data.characteristic_a = characteristic_a;
             data.characteristic_b = characteristic_b;
-            // data.monthly_payment = monthly_payment;
-            // data.base_earnings = base_earnings;
+
+            // Add payment frequency and base earnings to data
+            data.monthly_payment = monthly_payment;
+            data.base_earnings = base_earnings;
 
             // Send data in json format as response.
             res.json(data)
