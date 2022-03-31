@@ -33,32 +33,6 @@ const characteristics = {
     }
 };
 
-// Takes in payment frequency, returns base earnings
-const gen_base_earnings = function(monthly_payment) {
-    var base_earnings = 100
-    const n = Math.floor(Math.random() * 3)
-
-    if (monthly_payment) {
-        if (n == 0) {
-            base_earnings = 0
-        } else if (n == 1) {
-            base_earnings = 5
-        } else if (n == 2) {
-            base_earnings = 15
-        }
-    } else {
-        if (n == 0) {
-            base_earnings = 0
-        } else if (n == 1) {
-            base_earnings = 15
-        } else if (n == 2) {
-            base_earnings = 60
-        }
-    }
-
-    return(base_earnings);
-}
-
 // Takes in design input. Returns Base and Treated Values
 const convert_design = function(data, characteristics, qnumber, base_earnings, characteristic_a, characteristic_b) {
 
