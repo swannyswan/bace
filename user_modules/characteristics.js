@@ -234,6 +234,37 @@ const sample_characteristics = function(obj, n = characteristics_per_scenario) {
     return Object.keys(obj);
 }
 
+// Takes in payment frequency, returns base earnings
+const gen_payment_params = function() {
+    const monthly_payment = Math.floor(Math.random() * 2)
+
+    let base_earnings = 100
+
+    const n = Math.floor(Math.random() * 3)
+
+    if (monthly_payment) {
+        if (n == 0) {
+            base_earnings = 0
+        } else if (n == 1) {
+            base_earnings = 5
+        } else if (n == 2) {
+            base_earnings = 15
+        }
+    } else {
+        if (n == 0) {
+            base_earnings = 0
+        } else if (n == 1) {
+            base_earnings = 15
+        } else if (n == 2) {
+            base_earnings = 60
+        }
+    }
+
+    return([monthly_payment, base_earnings]);
+}
+
+
+
 // Shuffle array using Fisher-Yates algorithm
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
@@ -247,7 +278,7 @@ function shuffle(array) {
 module.exports = {
     characteristics,
     example_base_earnings,
-    gen_base_earnings,
+    gen_payment_params,
     convert_design,
     shuffle,
     sample_characteristics,

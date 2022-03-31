@@ -37,8 +37,11 @@ router.post('/create_profile', async (req, res) => {
         const query = 'SELECT create_profile AS profile_id FROM create_profile(this_survey_id => $1, sample_percentage_theta => $2);';
         const values = [survey_id, sample_percentage_theta];
 
-        // Assign characteristics a and b randomly
+        // Assign characteristics a and b
         const [characteristic_a, characteristic_b] = user.sample_characteristics(user.characteristics);
+
+        // Set payment frequency (monthly or one-time) and base value
+        const [monthly_payment, base_earnings] = user.gen_payment_params();
 
         // Query database
         db.one(
@@ -47,42 +50,12 @@ router.post('/create_profile', async (req, res) => {
         ).then(data => {
 
             // Receive data. Format as JSON object with additional information that you want to include.
-
-            // Takes in payment frequency, returns base earnings
-            const monthly_payment = Math.floor(Math.random() * 2)
-
-            const gen_base_earnings = function(monthly_payment) {
-                let base_earnings = 100
-
-                const n = Math.floor(Math.random() * 3)
-
-                if (monthly_payment) {
-                    if (n == 0) {
-                        base_earnings = 0
-                    } else if (n == 1) {
-                        base_earnings = 5
-                    } else if (n == 2) {
-                        base_earnings = 15
-                    }
-                } else {
-                    if (n == 0) {
-                        base_earnings = 0
-                    } else if (n == 1) {
-                        base_earnings = 15
-                    } else if (n == 2) {
-                        base_earnings = 60
-                    }
-                }
-
-                return(base_earnings);
-            }
-
-            const base_earnings = gen_base_earnings(monthly_payment)
             
             // Add characteristic a and b variables to data
             data.characteristic_a = characteristic_a;
             data.characteristic_b = characteristic_b;
-            data.base_earnings = base_earnings;
+            // data.monthly_payment = monthly_payment;
+            // data.base_earnings = base_earnings;
 
             // Send data in json format as response.
             res.json(data)
