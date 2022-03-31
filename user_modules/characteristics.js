@@ -2,6 +2,8 @@ const characteristics_per_scenario = 2; // 2 characteristics (X: tree size, Y: g
 const example_base_earnings = 100; // Example base_earnings used for returning test output
 const treated_survey_value = 1; // Recode value in Qualtrics
 
+const base_earnings = 10; // base earnings
+
 // Image urls from Qualtrics
 // const baseline = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
 // const small_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
@@ -60,6 +62,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     // const large_trees_grass = 2.5;
 
     var base_a, base_b, treat_a, treat_b;
+
     var base_img;
     var treat_img;
 
@@ -170,7 +173,6 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
     };
 
 
-
     // Set base and treat text values
     var base_char_a, base_char_b, treat_char_a, treat_char_b;
     base_char_a = characteristics[characteristic_a].values[base_a];
@@ -210,7 +212,7 @@ const convert_design = function(data, characteristics, qnumber, base_earnings, c
 }
 
 // Transform Earnings
-const transform_earnings = function(base_earnings, diff_earnings){
+const transform_earnings = function(base_earnings, diff_earnings) {
 
     const base_e = parseFloat(base_earnings);
     const treat_e = base_e + diff_earnings;
@@ -247,6 +249,7 @@ function shuffle(array) {
 module.exports = {
     characteristics,
     example_base_earnings,
+    base_earnings,
     convert_design,
     shuffle,
     sample_characteristics,
