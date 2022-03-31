@@ -2,8 +2,6 @@ const characteristics_per_scenario = 2; // 2 characteristics (X: tree size, Y: g
 const example_base_earnings = 100; // Example base_earnings used for returning test output
 const treated_survey_value = 1; // Recode value in Qualtrics
 
-const base_earnings = 10; // base earnings
-
 // Image urls from Qualtrics
 // const baseline = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
 // const small_trees = "https://brown.co1.qualtrics.com/CP/Graphic.php?IM=IM_3BExhm4UusJYfga";
@@ -34,6 +32,11 @@ const characteristics = {
         ]
     }
 };
+
+// Takes in payment frequency, returns base earnings
+const base_earnings = function() {
+
+}
 
 // Takes in design input. Returns Base and Treated Values
 const convert_design = function(data, characteristics, qnumber, base_earnings, characteristic_a, characteristic_b) {

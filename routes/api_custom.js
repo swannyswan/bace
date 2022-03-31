@@ -106,7 +106,7 @@ router.put('/choose_first_design', async (req, res) => {
 
         // Store request variables.
         const profile_id = parseInt(req.body.profile_id);
-        const base_earnings = parseFloat(req.body.base_earnings);
+        const monthly_payment = parseInt(req.body.monthly_payment);
         const characteristic_a = req.body.characteristic_a;
         const characteristic_b = req.body.characteristic_b;
         const sample_percentage_designs = (typeof req.body.sample_percentage_designs === 'undefined' ? user_defaults.sample_percentage_designs : req.body.sample_percentage_designs);  
@@ -120,6 +120,8 @@ router.put('/choose_first_design', async (req, res) => {
             query,
             values
         ).then(data => {
+
+            const base_earnings = user.base_earnings(monthly_payment)
 
             // Convert data using user-specified function
             var output = user.convert_design(data, user.characteristics, qnumber, base_earnings, characteristic_a, characteristic_b);
