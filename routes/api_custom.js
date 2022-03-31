@@ -121,7 +121,7 @@ router.put('/choose_first_design', async (req, res) => {
             values
         ).then(data => {
 
-            const base_earnings = user.base_earnings(monthly_payment)
+            const base_earnings = user.gen_base_earnings(monthly_payment)
 
             // Convert data using user-specified function
             var output = user.convert_design(data, user.characteristics, qnumber, base_earnings, characteristic_a, characteristic_b);
