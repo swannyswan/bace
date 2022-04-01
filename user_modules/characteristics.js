@@ -1,6 +1,6 @@
 const characteristics_per_scenario = 2; // 2 characteristics (X: tree size, Y: grass presence)
 const example_base_earnings = 100; // Example base_earnings used for returning test output
-const example_monthly_payment = 1; // Example monthly_payment for test
+const example_payment_scheme = "daily"; // Example payment_scheme for test
 const treated_survey_value = 1; // Recode value in Qualtrics
 
 // Image urls from Qualtrics
@@ -35,7 +35,7 @@ const characteristics = {
 };
 
 // Takes in design input. Returns Base and Treated Values
-const convert_design = function(data, characteristics, qnumber, monthly_payment, base_earnings, characteristic_a, characteristic_b) {
+const convert_design = function(data, characteristics, qnumber, payment_scheme, base_earnings, characteristic_a, characteristic_b) {
 
     // Store earnings difference
     const diff_earnings = parseFloat(data.design[0]);
@@ -237,13 +237,16 @@ const sample_characteristics = function(obj, n = characteristics_per_scenario) {
 
 // Takes in payment frequency, returns base earnings
 const gen_payment_params = function() {
-    const monthly_payment = Math.floor(Math.random() * 2)
+    const monthly = Math.floor(Math.random() * 2)
 
     let base_earnings = 100
+    let payment_scheme = ""
 
     const n = Math.floor(Math.random() * 3)
 
-    if (monthly_payment) {
+    if (monthly) {
+        payment_scheme = "monthly"
+
         if (n == 0) {
             base_earnings = 0
         } else if (n == 1) {
@@ -252,6 +255,8 @@ const gen_payment_params = function() {
             base_earnings = 15
         }
     } else {
+        payment_scheme = "one-time"
+
         if (n == 0) {
             base_earnings = 0
         } else if (n == 1) {
@@ -261,7 +266,7 @@ const gen_payment_params = function() {
         }
     }
 
-    return([monthly_payment, base_earnings]);
+    return([payment_scheme, base_earnings]);
 }
 
 // Shuffle array using Fisher-Yates algorithm
@@ -277,7 +282,7 @@ function shuffle(array) {
 module.exports = {
     characteristics,
     example_base_earnings,
-    example_monthly_payment,
+    example_payment_scheme,
     gen_payment_params,
     convert_design,
     shuffle,

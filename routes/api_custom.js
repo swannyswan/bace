@@ -22,7 +22,7 @@ router.post('/create_profile', async (req, res) => {
             profile_id: 0,
             characteristic_a: 'TEST',
             characteristic_b: 'TEST',
-            monthly_payment: 1,
+            payment_scheme: 1,
             base_earnings: 0
         }
 
@@ -43,7 +43,7 @@ router.post('/create_profile', async (req, res) => {
         const [characteristic_a, characteristic_b] = user.sample_characteristics(user.characteristics);
 
         // Set payment frequency (monthly or one-time) and base value
-        const [monthly_payment, base_earnings] = user.gen_payment_params();
+        const [payment_scheme, base_earnings] = user.gen_payment_params();
 
         // Query database
         db.one(
@@ -58,7 +58,7 @@ router.post('/create_profile', async (req, res) => {
             data.characteristic_b = characteristic_b;
 
             // Add payment frequency and base earnings to data
-            data.monthly_payment = monthly_payment;
+            data.payment_scheme = payment_scheme;
             data.base_earnings = base_earnings;
 
             // Send data in json format as response.
@@ -97,7 +97,7 @@ router.put('/choose_first_design', async (req, res) => {
                 data,
                 user.characteristics,
                 qnumber,
-                user.example_monthly_payment,
+                user.example_payment_scheme,
                 user.example_base_earnings,
                 Object.keys(user.characteristics)[0], 
                 Object.keys(user.characteristics)[1]
@@ -118,7 +118,7 @@ router.put('/choose_first_design', async (req, res) => {
         const profile_id = parseInt(req.body.profile_id);
         const characteristic_a = req.body.characteristic_a;
         const characteristic_b = req.body.characteristic_b;
-        const monthly_payment = parseInt(req.body.monthly_payment);
+        const payment_scheme = parseInt(req.body.payment_scheme);
         const base_earnings = parseInt(req.body.base_earnings);
         const sample_percentage_designs = (typeof req.body.sample_percentage_designs === 'undefined' ? user_defaults.sample_percentage_designs : req.body.sample_percentage_designs);  
 
@@ -133,7 +133,7 @@ router.put('/choose_first_design', async (req, res) => {
         ).then(data => {
 
             // Convert data using user-specified function
-            var output = user.convert_design(data, user.characteristics, qnumber, monthly_payment, base_earnings, characteristic_a, characteristic_b);
+            var output = user.convert_design(data, user.characteristics, qnumber, payment_scheme, base_earnings, characteristic_a, characteristic_b);
 
             // Return output to user
             res.json(output)
@@ -169,7 +169,7 @@ router.put('/update_and_choose_design', async (req, res) => {
                 data,
                 user.characteristics,
                 qnumber,
-                user.example_monthly_payment,
+                user.example_payment_scheme,
                 user.example_base_earnings,
                 Object.keys(user.characteristics)[0], 
                 Object.keys(user.characteristics)[1]
@@ -190,7 +190,7 @@ router.put('/update_and_choose_design', async (req, res) => {
         const profile_id = parseInt(req.body.profile_id);
         const characteristic_a = req.body.characteristic_a;
         const characteristic_b = req.body.characteristic_b;
-        const monthly_payment = parseInt(req.body.monthly_payment);
+        const payment_scheme = parseInt(req.body.payment_scheme);
         const base_earnings = parseInt(req.body.base_earnings);
         const sample_percentage_designs = (typeof req.body.sample_percentage_designs === 'undefined' ? user_defaults.sample_percentage_designs : req.body.sample_percentage_designs);  
 
@@ -208,7 +208,7 @@ router.put('/update_and_choose_design', async (req, res) => {
         ).then(data => {
 
             // Convert data using user-specified function
-            var output = user.convert_design(data, user.characteristics, qnumber, monthly_payment, base_earnings, characteristic_a, characteristic_b);
+            var output = user.convert_design(data, user.characteristics, qnumber, payment_scheme, base_earnings, characteristic_a, characteristic_b);
 
             // Return output to user
             res.json(output)
