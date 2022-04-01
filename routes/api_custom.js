@@ -95,6 +95,7 @@ router.put('/choose_first_design', async (req, res) => {
                 data,
                 user.characteristics,
                 qnumber,
+                1,
                 user.example_base_earnings,
                 Object.keys(user.characteristics)[0], 
                 Object.keys(user.characteristics)[1]
