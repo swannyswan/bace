@@ -1,5 +1,6 @@
 const characteristics_per_scenario = 2; // 2 characteristics (X: tree size, Y: grass presence)
 const example_base_earnings = 100; // Example base_earnings used for returning test output
+const example_monthly_payment = 1; // Example monthly_payment for test
 const treated_survey_value = 1; // Recode value in Qualtrics
 
 // Image urls from Qualtrics
@@ -276,6 +277,7 @@ function shuffle(array) {
 module.exports = {
     characteristics,
     example_base_earnings,
+    example_monthly_payment,
     gen_payment_params,
     convert_design,
     shuffle,
