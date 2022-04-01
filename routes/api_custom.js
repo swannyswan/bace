@@ -188,9 +188,10 @@ router.put('/update_and_choose_design', async (req, res) => {
 
         // Store request variables.
         const profile_id = parseInt(req.body.profile_id);
-        const base_earnings = parseFloat(req.body.base_earnings);
         const characteristic_a = req.body.characteristic_a;
         const characteristic_b = req.body.characteristic_b;
+        const monthly_payment = parseInt(req.body.monthly_payment);
+        const base_earnings = parseInt(req.body.base_earnings);
         const sample_percentage_designs = (typeof req.body.sample_percentage_designs === 'undefined' ? user_defaults.sample_percentage_designs : req.body.sample_percentage_designs);  
 
         // Check whether user chose the treated option
@@ -207,7 +208,7 @@ router.put('/update_and_choose_design', async (req, res) => {
         ).then(data => {
 
             // Convert data using user-specified function
-            var output = user.convert_design(data, user.characteristics, qnumber, base_earnings, characteristic_a, characteristic_b);
+            var output = user.convert_design(data, user.characteristics, qnumber, monthly_payment, base_earnings, characteristic_a, characteristic_b);
 
             // Return output to user
             res.json(output)
