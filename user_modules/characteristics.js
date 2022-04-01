@@ -263,8 +263,6 @@ const gen_payment_params = function() {
     return([monthly_payment, base_earnings]);
 }
 
-
-
 // Shuffle array using Fisher-Yates algorithm
 function shuffle(array) {
     for (let i = array.length - 1; i > 0; i--) {
