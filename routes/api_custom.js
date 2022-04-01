@@ -130,7 +130,7 @@ router.put('/choose_first_design', async (req, res) => {
         ).then(data => {
 
             // Convert data using user-specified function
-            var output = user.convert_design(data, user.characteristics, qnumber, base_earnings, characteristic_a, characteristic_b);
+            var output = user.convert_design(data, user.characteristics, qnumber, monthly_payment, base_earnings, characteristic_a, characteristic_b);
 
             // Return output to user
             res.json(output)

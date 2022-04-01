@@ -34,7 +34,7 @@ const characteristics = {
 };
 
 // Takes in design input. Returns Base and Treated Values
-const convert_design = function(data, characteristics, qnumber, base_earnings, characteristic_a, characteristic_b) {
+const convert_design = function(data, characteristics, qnumber, monthly_payment, base_earnings, characteristic_a, characteristic_b) {
 
     // Store earnings difference
     const diff_earnings = parseFloat(data.design[0]);
