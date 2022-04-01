@@ -59,6 +59,8 @@ const convert_design = function(data, characteristics, qnumber, monthly_payment,
     // const large_trees = 2;
     // const large_trees_grass = 2.5;
 
+    var t;
+
     var base_a, base_b, treat_a, treat_b;
 
     var base_img;
@@ -66,6 +68,8 @@ const convert_design = function(data, characteristics, qnumber, monthly_payment,
 
     // Set base_earn and treat_earn from base_earning and treat_earnings.
     const [base_e, treat_e] = transform_earnings(base_earnings, diff_earnings)
+
+    t = monthly_payment;
 
     // Set base and treat values based on question designs.
     if (data.design[1] === 2 && data.design[2] === 1 & data.design[3] === 1) {
@@ -198,6 +202,8 @@ const convert_design = function(data, characteristics, qnumber, monthly_payment,
     // new
     output['base_img_' + qnumber] = base_img;
     output['treat_img_' + qnumber] = treat_img;
+
+    output['t_' + qnumber] = t;
 
     output['base_a_' + qnumber] = base_char_a;
     output['base_b_' + qnumber] = base_char_b;
