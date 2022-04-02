@@ -262,7 +262,7 @@ const gen_payment_params = function() {
         } else if (n == 1) {
             base_earnings = 15
         } else if (n == 2) {
-            base_earnings = 60
+            base_earnings = 65
         }
     }
 
