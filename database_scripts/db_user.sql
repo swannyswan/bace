@@ -44,7 +44,7 @@ VALUES
     (ARRAY[0, 1, 1]);
 
 -- SELECT gen_grid_designs(diff_earnings => ARRAY[-12, 12, 0.25]); -- earnings differences in designs will be [-12, -11.75, -11.5, ..., 11.75, 12]
-SELECT gen_grid_designs(diff_earnings => ARRAY[0, 15, 0.25]); -- earnings differences in designs will be [0, 0.25, 0.5, ..., 14.75, 15]
+SELECT gen_grid_designs(diff_earnings => ARRAY[0, 40, 0.25]); -- earnings differences in designs will be [0, 0.25, 0.5, ..., 14.75, 15]
 
 /*
     STEP 3: Update Likelihood Function
