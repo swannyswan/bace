@@ -16,7 +16,7 @@ SELECT gen_grid_thetas(theta => ARRAY[
     [-10, 10, 1], -- Parameter 1 values will be: [-20, -19, ..., 19, 20]
     [-10, 10, 1], -- Parameter 2 values will be: [-5, -4, ..., 4, 5]
     [-5, 5, 1], -- Parameter 3 values will be: [-1.5, -1, -0.5, 0, 0.5, 1, 1.5],
-    [1, 20, 2] -- Parameter 4 values will be: [1, 3, 5]
+    [1, 20, 2]] -- Parameter 4 values will be: [1, 3, ..., 17, 19]
     );
 
 /*
