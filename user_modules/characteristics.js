@@ -104,7 +104,7 @@ const convert_design = function(data, characteristics, qnumber, payment_scheme, 
         treat_img = small_trees;
 
     } else if (data.design[1] === 0 && data.design[2] === 1 & data.design[3] === 0 & data.design[4] === 0) {
-
+        // good
         base_a = 0;
         base_b = 0;
         treat_a = 1;
@@ -114,7 +114,7 @@ const convert_design = function(data, characteristics, qnumber, payment_scheme, 
         treat_img = small_trees;
 
     } else if (data.design[1] === 0 && data.design[2] === 1 & data.design[3] === 0 & data.design[4] === 1) {
-
+        // good
         base_a = 0;
         base_b = 1;
         treat_a = 1;
@@ -124,7 +124,7 @@ const convert_design = function(data, characteristics, qnumber, payment_scheme, 
         treat_img = small_trees_grass;
 
     } else if (data.design[1] === 1 && data.design[2] === 0 & data.design[3] === 0 & data.design[4] === 0) {
-
+        // good
         base_a = 0;
         base_b = 0;
         treat_a = 0;
@@ -162,6 +162,7 @@ const convert_design = function(data, characteristics, qnumber, payment_scheme, 
     output['diff_d2_' + qnumber] = data.design[2];
     output['diff_d3_' + qnumber] = data.design[3];
     output['diff_d4_' + qnumber] = data.design[4];
+    output['diff_d5_' + qnumber] = data.design[5];
 
     // Set Label Information
     output['label_a'] = characteristics[characteristic_a].label;
