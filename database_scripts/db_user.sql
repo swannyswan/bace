@@ -15,17 +15,17 @@ SELECT 'Generating theta grid...';
 
 SELECT gen_grid_thetas(theta => ARRAY[
     -- INSERT ARRAY PARAMETERS HERE TO GENERATE GRID
---     [-8, 8, 2], -- Parameter 1 values will be: [-5, -4, ..., 4, 5]
---     [-8, 8, 2], -- Parameter 2 values will be: [-5, -4, ..., 4, 5]
---     [-8, 8, 2], -- Parameter 3 values will be: [-5, -4, ..., 4, 5]
---     [-15, 15, 5], -- Parameter 4 values will be: [-1.5, -1, -0.5, 0, 0.5, 1, 1.5]
---     [1, 11, 2]] -- Parameter 5 values will be: [1, 3, 5]
-    [-4, 4, 2], -- Parameter 1 values will be: [-5, -4, ..., 4, 5]
-           [-4, 4, 2], -- Parameter 2 values will be: [-5, -4, ..., 4, 5]
-           [-4, 4, 2], -- Parameter 3 values will be: [-5, -4, ..., 4, 5]
-           [-15, 15, 5], -- Parameter 4 values will be: [-1.5, -1, -0.5, 0, 0.5, 1, 1.5]
-           [1, 11, 2]] -- Parameter 5 values will be: [1, 3, 5]
-           );
+    [-8, 8, 2], -- Parameter 1 values will be: [-5, -4, ..., 4, 5]
+    [-8, 8, 2], -- Parameter 2 values will be: [-5, -4, ..., 4, 5]
+    [-8, 8, 2], -- Parameter 3 values will be: [-5, -4, ..., 4, 5]
+    [-15, 15, 5], -- Parameter 4 values will be: [-1.5, -1, -0.5, 0, 0.5, 1, 1.5]
+    [1, 11, 2]] -- Parameter 5 values will be: [1, 3, 5]
+--         [-4, 4, 2], -- Parameter 1 values will be: [-5, -4, ..., 4, 5]
+--         [-4, 4, 2], -- Parameter 2 values will be: [-5, -4, ..., 4, 5]
+--         [-4, 4, 2], -- Parameter 3 values will be: [-5, -4, ..., 4, 5]
+--         [-15, 15, 5], -- Parameter 4 values will be: [-1.5, -1, -0.5, 0, 0.5, 1, 1.5]
+--         [1, 11, 2]] -- Parameter 5 values will be: [1, 3, 5]
+    );
 
 /*
     STEP 2: CREATE Designs - Grid of possible discrete choice designs that can be asked
@@ -50,16 +50,16 @@ VALUES
 --     (ARRAY[1, 0, 1]),
 --     (ARRAY[0, 1, 0]),
 --     (ARRAY[0, 1, 1]);
-(ARRAY[1, 0, 1, 1]), -- A: nothing B: grass, large trees ; (0,0,0,0), (1,0,1,1)
-(ARRAY[0, 1, 0, 0]), -- A: small trees, B: nothing ; (0,1,0,0), (0,0,0,0)
-(ARRAY[0, 1, 0, 1]), -- A: grass, B: grass, small trees ;
-(ARRAY[-1, 1, 0, 0]), -- A: grass, B: small trees ;
-(ARRAY[1, 0, 0, 0]), -- A: nothing, B: grass
-(ARRAY[1, 1, 0, 1]), -- A: nothing, B: grass, small trees
-(ARRAY[0, 0, 1, 1]), -- A: grass, B: grass, large trees
-(ARRAY[0, 0, 1, 0]), -- A: large trees, B: nothing
-(ARRAY[1, 0, 0, 1]), -- A: small trees, B: grass, small trees
-(ARRAY[-1, 0, 1, 0]); -- A: grass, B: large trees
+    (ARRAY[1, 0, 1, 1]), -- A: nothing B: grass, large trees ; (0,0,0,0), (1,0,1,1)
+    (ARRAY[0, 1, 0, 0]), -- A: small trees, B: nothing ; (0,1,0,0), (0,0,0,0)
+    (ARRAY[0, 1, 0, 1]), -- A: grass, B: grass, small trees ;
+    (ARRAY[-1, 1, 0, 0]), -- A: grass, B: small trees ;
+    (ARRAY[1, 0, 0, 0]), -- A: nothing, B: grass
+    (ARRAY[1, 1, 0, 1]), -- A: nothing, B: grass, small trees
+    (ARRAY[0, 0, 1, 1]), -- A: grass, B: grass, large trees
+    (ARRAY[0, 0, 1, 0]), -- A: large trees, B: nothing
+    (ARRAY[1, 0, 0, 1]), -- A: small trees, B: grass, small trees
+    (ARRAY[-1, 0, 1, 0]); -- A: grass, B: large trees
 
 
 -- SELECT gen_grid_designs(diff_earnings => ARRAY[-12, 12, 0.25]); -- earnings differences in designs will be [-12, -11.75, -11.5, ..., 11.75, 12]
@@ -82,7 +82,7 @@ util_diff float;
 BEGIN
     -- Note, PostgreSQL arrays are 1-based. E.g. IF x = ARRAY[10, 4, 7], then x[1] = 10, x[2] = 4, ...
     -- util_diff = u(treat) - u(base)
-    util_diff := design[1] + design[2] * theta[1] + design[3] * theta[2] + design[4] * theta[3] + design[5] * theta[4];
+    util_diff := - design[1] + design[2] * theta[1] + design[3] * theta[2] + design[4] * theta[3] + design[5] * theta[4];
     -- Likelihood of choosing the treated option
     likelihood := 1.0 / (1.0 + exp_safe(-1.0 * theta[5] * util_diff));
 RETURN likelihood;
