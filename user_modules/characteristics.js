@@ -133,15 +133,15 @@ const convert_design = function(data, characteristics, qnumber, payment_scheme, 
         base_img = baseline;
         treat_img = grass;
 
-    } else if (data.design[1] === 1 && data.design[2] === 0 & data.design[3] === 0 & data.design[4] === 1) {
+    } else if (data.design[1] === -1 && data.design[2] === 0 & data.design[3] === 0 & data.design[4] === -1) {
 
         base_a = 1;
         base_b = 0;
         treat_a = 1;
         treat_b = 1;
 
-        base_img = small_trees;
-        treat_img = small_trees_grass;
+        base_img = small_trees_grass;
+        treat_img = small_trees;
 
     };
 
