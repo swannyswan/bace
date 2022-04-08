@@ -58,7 +58,7 @@ VALUES
     (ARRAY[1, 1, 0, 1]), -- A: nothing, B: grass, small trees
     (ARRAY[0, 0, 1, 1]), -- A: grass, B: grass, large trees
     (ARRAY[0, 0, 1, 0]), -- A: large trees, B: nothing
-    (ARRAY[-1, 0, 0, -1]), -- A: small trees, B: grass, small trees
+    (ARRAY[1, 0, 0, 1]), -- A: small trees, B: grass, small trees
     (ARRAY[-1, 0, 1, 0]); -- A: grass, B: large trees
 
 
