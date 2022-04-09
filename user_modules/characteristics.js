@@ -3,6 +3,12 @@ const example_base_earnings = 100; // Example base_earnings used for returning t
 const example_payment_scheme = "daily"; // Example payment_scheme for test
 const treated_survey_value = 1; // Recode value in Qualtrics
 
+// for testing
+const theta_1 = 15;
+const theta_2 = 15;
+const theta_3 = 15;
+const theta_4 = -5;
+
 const characteristics = {
     characteristic_x: {
         label: 'Characteristic X - Tree Size',
@@ -162,7 +168,7 @@ const convert_design = function(data, characteristics, qnumber, payment_scheme, 
     output['diff_d2_' + qnumber] = data.design[2];
     output['diff_d3_' + qnumber] = data.design[3];
     output['diff_d4_' + qnumber] = data.design[4];
-    output['diff_d5_' + qnumber] = data.design[5];
+    // output['diff_d5_' + qnumber] = data.design[5];
 
     // Set Label Information
     output['label_a'] = characteristics[characteristic_a].label;
@@ -180,6 +186,10 @@ const convert_design = function(data, characteristics, qnumber, payment_scheme, 
     output['base_b_' + qnumber] = base_char_b;
     output['treat_a_' + qnumber] = treat_char_a;
     output['treat_b_' + qnumber] = treat_char_b;
+
+    // debug
+
+    output['util_diff_' + qnumber] = -1 * diff_earnings + theta_1 * data.design[1] + theta_2 * data.design[2] + theta_3 * data.design[3] + theta_4 * data.design[4]
 
     // Return output
     return(output);

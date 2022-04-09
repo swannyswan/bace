@@ -15,11 +15,11 @@ SELECT 'Generating theta grid...';
 
 SELECT gen_grid_thetas(theta => ARRAY[
     -- INSERT ARRAY PARAMETERS HERE TO GENERATE GRID
-    [-8, 8, 2], -- Parameter 1 values will be: [-5, -4, ..., 4, 5]
-    [-8, 8, 2], -- Parameter 2 values will be: [-5, -4, ..., 4, 5]
-    [-8, 8, 2], -- Parameter 3 values will be: [-5, -4, ..., 4, 5]
-    [-5, 5, 2.5], -- Parameter 4 values will be: [-1.5, -1, -0.5, 0, 0.5, 1, 1.5]
-    [1, 9, 2]] -- Parameter 5 values will be: [1, 3, 5]
+    [-30, 30, 5], -- Parameter 1 values
+    [-30, 30, 5], -- Parameter 2 values
+    [-30, 30, 5], -- Parameter 3 values
+    [-40, 40, 10], -- Parameter 4 values
+    [1, 9, 2]] -- Parameter 5 values
 --         [-4, 4, 2], -- Parameter 1 values will be: [-5, -4, ..., 4, 5]
 --         [-4, 4, 2], -- Parameter 2 values will be: [-5, -4, ..., 4, 5]
 --         [-4, 4, 2], -- Parameter 3 values will be: [-5, -4, ..., 4, 5]
@@ -51,7 +51,7 @@ VALUES
 --     (ARRAY[0, 1, 0]),
 --     (ARRAY[0, 1, 1]);
     (ARRAY[1, 0, 1, 1]), -- A: nothing B: grass, large trees ; (0,0,0,0), (1,0,1,1)
-    (ARRAY[0, 1, 0, 0]), -- A: nothing B: small trees ; (0,0,0,0), (0,1,0,0)
+    (ARRAY[0, 1, 0, 0]), -- A: small trees, B: nothing ; (0,1,0,0), (0,0,0,0)
     (ARRAY[0, 1, 0, 1]), -- A: grass, B: grass, small trees ;
     (ARRAY[-1, 1, 0, 0]), -- A: grass, B: small trees ;
     (ARRAY[1, 0, 0, 0]), -- A: nothing, B: grass
@@ -63,7 +63,7 @@ VALUES
 
 
 -- SELECT gen_grid_designs(diff_earnings => ARRAY[-12, 12, 0.25]); -- earnings differences in designs will be [-12, -11.75, -11.5, ..., 11.75, 12]
-SELECT gen_grid_designs(diff_earnings => ARRAY[0, 40, 0.5]); -- earnings differences in designs will be [0, 0.25, 0.5, ..., 14.75, 15]
+SELECT gen_grid_designs(diff_earnings => ARRAY[0, 20, 1]); -- earnings differences in designs will be [0, 0.25, 0.5, ..., 14.75, 15]
 
 /*
     STEP 3: Update Likelihood Function
