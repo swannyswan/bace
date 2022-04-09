@@ -4,10 +4,10 @@ const example_payment_scheme = "daily"; // Example payment_scheme for test
 const treated_survey_value = 1; // Recode value in Qualtrics
 
 // for testing
-const theta_1 = 15;
-const theta_2 = 15;
+const theta_1 = 5;
+const theta_2 = 10;
 const theta_3 = 15;
-const theta_4 = -5;
+const theta_4 = 20;
 
 const characteristics = {
     characteristic_x: {
@@ -187,8 +187,7 @@ const convert_design = function(data, characteristics, qnumber, payment_scheme, 
     output['treat_a_' + qnumber] = treat_char_a;
     output['treat_b_' + qnumber] = treat_char_b;
 
-    // debug
-
+    // testing
     output['util_diff_' + qnumber] = -1 * diff_earnings + theta_1 * data.design[1] + theta_2 * data.design[2] + theta_3 * data.design[3] + theta_4 * data.design[4]
 
     // Return output
