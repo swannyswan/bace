@@ -4,9 +4,9 @@ const example_payment_scheme = "daily"; // Example payment_scheme for test
 const treated_survey_value = 1; // Recode value in Qualtrics
 
 // for testing
-const theta_1 = 5;
-const theta_2 = 10;
-const theta_3 = 15;
+const theta_1 = 15;
+const theta_2 = 20;
+const theta_3 = 25;
 const theta_4 = 30;
 
 const characteristics = {
