@@ -15,10 +15,10 @@ SELECT 'Generating theta grid...';
 
 SELECT gen_grid_thetas(theta => ARRAY[
     -- INSERT ARRAY PARAMETERS HERE TO GENERATE GRID
-    [-30, 30, 5], -- Parameter 1 values
-    [-30, 30, 5], -- Parameter 2 values
-    [-30, 30, 5], -- Parameter 3 values
-    [-40, 40, 10], -- Parameter 4 values
+    [-50, 50, 10], -- Parameter 1 values
+    [-50, 50, 10], -- Parameter 2 values
+    [-50, 50, 10], -- Parameter 3 values
+    [-50, 50, 10], -- Parameter 4 values
     [1, 9, 2]] -- Parameter 5 values
 --         [-4, 4, 2], -- Parameter 1 values will be: [-5, -4, ..., 4, 5]
 --         [-4, 4, 2], -- Parameter 2 values will be: [-5, -4, ..., 4, 5]
