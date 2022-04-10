@@ -18,8 +18,8 @@ SELECT gen_grid_thetas(theta => ARRAY[
     [0, 50, 5], -- Parameter 1 values
     [0, 50, 5], -- Parameter 2 values
     [0, 50, 5], -- Parameter 3 values
-    [0, 35, 5], -- Parameter 4 values
-    [1, 7, 3]] -- Parameter 5 values: [1, 4, 7]
+    [0, 32, 4], -- Parameter 4 values
+    [1, 7, 3]] -- Parameter 5 values
 --         [-4, 4, 2], -- Parameter 1 values will be: [-5, -4, ..., 4, 5]
 --         [-4, 4, 2], -- Parameter 2 values will be: [-5, -4, ..., 4, 5]
 --         [-4, 4, 2], -- Parameter 3 values will be: [-5, -4, ..., 4, 5]
