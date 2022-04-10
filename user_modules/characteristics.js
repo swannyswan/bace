@@ -7,7 +7,7 @@ const treated_survey_value = 1; // Recode value in Qualtrics
 const theta_1 = 15;
 const theta_2 = 20;
 const theta_3 = 25;
-const theta_4 = 30;
+const theta_4 = 10;
 
 const characteristics = {
     characteristic_x: {
