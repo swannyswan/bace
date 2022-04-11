@@ -17,19 +17,19 @@ SELECT gen_grid_thetas(theta => ARRAY[
     -- INSERT ARRAY PARAMETERS HERE TO GENERATE GRID
 
     -- Monthly
-    [0, 10, 2], -- Parameter 1 values
-    [0, 10, 2], -- Parameter 2 values
-    [0, 10, 2], -- Parameter 3 values
-    [-5, 5, 2.5], -- Parameter 4 values
-    [1, 7, 3]] -- Parameter 5 values
-    );
-    -- One time
---     [0, 60, 12], -- Parameter 1 values
---     [0, 60, 12], -- Parameter 2 values
---     [0, 60, 12], -- Parameter 3 values
---     [-30, 30, 10], -- Parameter 4 values
+--     [0, 10, 2], -- Parameter 1 values
+--     [0, 10, 2], -- Parameter 2 values
+--     [0, 10, 2], -- Parameter 3 values
+--     [-5, 5, 2.5], -- Parameter 4 values
 --     [1, 7, 3]] -- Parameter 5 values
 --     );
+    -- One time
+    [0, 60, 12], -- Parameter 1 values
+    [0, 60, 12], -- Parameter 2 values
+    [0, 60, 12], -- Parameter 3 values
+    [-30, 30, 10], -- Parameter 4 values
+    [1, 7, 3]] -- Parameter 5 values
+    );
 
 /*
     STEP 2: CREATE Designs - Grid of possible discrete choice designs that can be asked
