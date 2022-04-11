@@ -5,7 +5,7 @@ const treated_survey_value = 1; // Recode value in Qualtrics
 
 // for testing
 const theta_1 = 16;
-const theta_2 = 35;
+const theta_2 = 38;
 const theta_3 = 22;
 const theta_4 = 0;
 
@@ -222,7 +222,8 @@ const sample_characteristics = function(obj, n = characteristics_per_scenario) {
 
 // Takes in payment frequency, returns base earnings
 const gen_payment_params = function() {
-    const monthly = Math.floor(Math.random() * 2)
+    // const monthly = Math.floor(Math.random() * 2)
+    const monthly = 0
 
     let base_earnings = 100
     let payment_scheme = ""
