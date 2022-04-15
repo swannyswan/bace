@@ -24,9 +24,9 @@ SELECT gen_grid_thetas(theta => ARRAY[
 --     [1, 7, 3]] -- Parameter 5 values
 --     );
     -- One time
-    [0, 72, 12], -- Parameter 1 values
-    [0, 72, 12], -- Parameter 2 values
-    [0, 72, 12], -- Parameter 3 values
+    [0, 70, 10], -- Parameter 1 values
+    [0, 70, 10], -- Parameter 2 values
+    [0, 70, 10], -- Parameter 3 values
     [-30, 30, 10], -- Parameter 4 values
     [1, 7, 3]] -- Parameter 5 values
     );
@@ -67,7 +67,7 @@ VALUES
 
 
 -- SELECT gen_grid_designs(diff_earnings => ARRAY[-12, 12, 0.25]); -- earnings differences in designs will be [-12, -11.75, -11.5, ..., 11.75, 12]
-SELECT gen_grid_designs(diff_earnings => ARRAY[0, 174, 1]); -- earnings differences in designs will be [0, 0.25, 0.5, ..., 14.75, 15]
+SELECT gen_grid_designs(diff_earnings => ARRAY[0, 170, 5]); -- earnings differences in designs will be [0, 0.25, 0.5, ..., 14.75, 15]
 
 /*
     STEP 3: Update Likelihood Function
