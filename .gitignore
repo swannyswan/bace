@@ -3,3 +3,7 @@
 
 # dotenv environment variables file
 .env
+
+latest.dump
+latest.dump.1
+latest.dump.2
